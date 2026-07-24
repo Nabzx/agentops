@@ -18,7 +18,7 @@ from app.models.enums import UserRole
 from app.models.user import User
 from app.seeds.security import DEV_PASSWORD
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -71,15 +71,13 @@ async def api() -> AsyncIterator[tuple[AsyncClient, async_sessionmaker[AsyncSess
         try:
             yield client, factory
         finally:
+            # If this fixture seeded the database, leave it as empty as we found it so
+            # later test modules can seed cleanly.
             if seeded_here:
+                from tests.test_approval_service import _truncate_all
+
                 async with factory() as session:
-                    await session.execute(
-                        text(
-                            "TRUNCATE TABLE audit_events, refund_ledger_entries, "
-                            "executed_actions, outbox_attempts, outbox_jobs, "
-                            "approval_requests, workflow_runs RESTART IDENTITY CASCADE"
-                        )
-                    )
+                    await _truncate_all(session)
                     await session.commit()
             await engine.dispose()
 

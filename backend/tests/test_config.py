@@ -43,5 +43,8 @@ def test_production_rejects_dev_secret() -> None:
 
 
 def test_production_accepts_real_secret() -> None:
-    settings = Settings(environment="production", jwt_secret="a-real-secret-value")
+    settings = Settings(
+        environment="production",
+        jwt_secret="a-real-production-secret-value-0123456789",
+    )
     assert settings.environment == "production"
