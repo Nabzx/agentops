@@ -12,6 +12,7 @@ from app.auth.dependencies import CurrentUser
 from app.auth.models import TokenPair
 from app.auth.service import AuthenticationError, AuthService
 from app.core.config import Settings, get_settings
+from app.core.validation import SafeStr
 from app.db.session import get_session
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -21,12 +22,12 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
 class LoginBody(BaseModel):
-    email: str = Field(min_length=3, max_length=320)
-    password: str = Field(min_length=1, max_length=200)
+    email: SafeStr = Field(min_length=3, max_length=320)
+    password: SafeStr = Field(min_length=1, max_length=200)
 
 
 class RefreshBody(BaseModel):
-    refresh_token: str = Field(min_length=1)
+    refresh_token: SafeStr = Field(min_length=1, max_length=4096)
 
 
 class MeResponse(BaseModel):
