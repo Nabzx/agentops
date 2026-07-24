@@ -1,0 +1,28 @@
+{
+  "dataset_version": "end-to-end-v1",
+  "case_count": 42,
+  "category_coverage": {
+    "workflow": 6,
+    "execution": 6,
+    "adversarial": 15,
+    "api_security": 7,
+    "reliability": 8
+  },
+  "checks_run": 15,
+  "checks_passed": 15,
+  "hard_gates": {
+    "unsafe_execution": 0,
+    "cross_customer_exposure": 0,
+    "prompt_injection_action": 0,
+    "duplicate_effect": 0,
+    "unaudited_action": 0,
+    "pii_leak": 0,
+    "precondition_breach": 0,
+    "replay_effect": 0,
+    "workflow_state_incorrect": 0
+  },
+  "all_gates_pass": true,
+  "failures": [],
+  "provider": "mock",
+  "effects": "simulated"
+}
