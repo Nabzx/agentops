@@ -21,6 +21,7 @@ FRONTEND_DIR := frontend
         approval-approve approval-reject approval-expire approval-retry \
         outbox-list outbox-stats process-outbox release-outbox-leases \
         action-list refund-ledger approval-demo eval-approvals \
+        eval-end-to-end deps-audit \
         audit-list audit-verify audit-trace eval-observability \
         test test-backend test-frontend lint lint-backend lint-frontend \
         typecheck typecheck-backend typecheck-frontend format check
@@ -187,6 +188,12 @@ eval-workflows: ## Run the workflow evaluation (enforces hard gates)
 
 eval-approvals: ## Run the approval/action safety evaluation (enforces S6 hard gates)
 	$(COMPOSE) exec -e LLM_DEFAULT_PROVIDER=mock backend python -m app.actions.evaluation
+
+eval-end-to-end: ## Run the full end-to-end + adversarial evaluation (S8 hard gates)
+	$(COMPOSE) exec -e LLM_DEFAULT_PROVIDER=mock backend python -m app.evaluation.end_to_end
+
+deps-audit: ## Offline dependency check: verify the lockfile is consistent and pinned
+	$(COMPOSE) exec backend uv lock --check
 
 eval-observability: ## Run the observability/audit evaluation (enforces S7 hard gates)
 	$(COMPOSE) exec -e LLM_DEFAULT_PROVIDER=mock backend python -m app.audit.evaluation
