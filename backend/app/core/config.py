@@ -202,11 +202,20 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _guard_production_secrets(self) -> Settings:
-        """Refuse to boot in production with development-only secrets."""
-        if self.environment == "production" and self.jwt_secret == DEV_ONLY_JWT_SECRET:
+        """Refuse to boot in production with unsafe configuration (S8 hardening)."""
+        if self.environment != "production":
+            return self
+        if self.jwt_secret == DEV_ONLY_JWT_SECRET:
             raise ValueError(
                 "JWT_SECRET must be set to a real value when ENVIRONMENT=production"
             )
+        if len(self.jwt_secret) < 32:
+            raise ValueError("JWT_SECRET must be at least 32 characters in production")
+        if self.debug:
+            raise ValueError("DEBUG must be off in production")
+        # A wildcard CORS origin combined with credentials is unsafe.
+        if "*" in self.backend_cors_origins:
+            raise ValueError("BACKEND_CORS_ORIGINS must not be '*' in production")
         return self
 
     @property
