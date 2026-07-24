@@ -9,14 +9,24 @@ consequential action — stops at a **human approval gate** before a durable wor
 executes it exactly once. Every run is traced, costed, audited and scored against a
 golden evaluation set.
 
-> **Current stage: S7 — Observability, Audit Logs and Production Reliability (complete).**
-> One traceable identity per request/run/job; structured, provably PII-safe logs;
-> deterministic offline tracing; in-process metrics at `/metrics`; an immutable,
-> hash-chained audit log written transactionally with every consequential and security
-> event; and reliability hardening (request-id/timeout/size/rate-limit middleware, a
-> structured error envelope, a provider circuit breaker, and readiness that checks the
-> database *and* migrations). All telemetry is local and offline — no external APM,
-> collector or log shipper. See [docs/observability.md](docs/observability.md),
+> **Current stage: S8 — Full End-to-End Evaluation and Security Hardening (complete).**
+> One graded, offline, deterministic run drives 42 real customer-support journeys across
+> every layer — ingestion → classification → tools → retrieval → rules → workflow →
+> approval → simulated execution → audit — with all end-to-end hard gates at 0. Security
+> is hardened and test-proven: a production config guard, control-char/size/rate input
+> limits, a full RBAC permission-matrix + IDOR check, a PII/secret leak scan, the
+> instruction hierarchy that stops prompt injection, and an offline dependency audit. See
+> [docs/end-to-end-evaluation.md](docs/end-to-end-evaluation.md),
+> [docs/security-hardening.md](docs/security-hardening.md) and
+> [docs/threat-model.md](docs/threat-model.md).
+>
+> **S7 — Observability, Audit Logs and Production Reliability.** One traceable identity per
+> request/run/job; structured, provably PII-safe logs; deterministic offline tracing;
+> in-process metrics at `/metrics`; an immutable, hash-chained audit log written
+> transactionally with every consequential event; and reliability hardening (timeout /
+> size / rate-limit middleware, a structured error envelope, a provider circuit breaker,
+> and readiness that checks the database *and* migrations). All telemetry is local and
+> offline. See [docs/observability.md](docs/observability.md),
 > [docs/audit-log.md](docs/audit-log.md) and
 > [docs/production-reliability.md](docs/production-reliability.md).
 >
@@ -439,7 +449,8 @@ Redis or external network.
 S0 Foundations → S1 Domain & Synthetic Data → S2 Deterministic Tools & Business Rules →
 S3 Policy Retrieval & Evidence Grounding → S4 Provider Abstraction & Prompt System →
 S5 Workflow State Machine & Checkpointing → S6 Human Approval & Durable Action Execution →
-**S7 Observability, Audit & Production Reliability (this stage — complete)** →
-S8 End-to-end evaluation & security hardening → S9 Dashboard → S10 Final polish.
+S7 Observability, Audit & Production Reliability →
+**S8 End-to-end Evaluation & Security Hardening (this stage — complete)** →
+S9 Dashboard → S10 Final polish.
 
-**Next up: S8 — full end-to-end evaluation and security hardening.**
+**Next up: S9 — the professional frontend dashboard.**
