@@ -156,7 +156,13 @@ jobs:
         run: uv run python -m app.actions.evaluation
 
       - name: Observability/audit evaluation (enforces S7 hard gates)
-        run: uv run python -m app.actions.evaluation && uv run python -m app.audit.evaluation
+        run: uv run python -m app.audit.evaluation
+
+      - name: End-to-end + adversarial evaluation (enforces S8 hard gates)
+        run: uv run python -m app.evaluation.end_to_end
+
+      - name: Offline dependency / lockfile audit
+        run: uv lock --check
 
       - name: Verify the audit hash-chain
         run: uv run python -m app.audit.cli verify-chain
