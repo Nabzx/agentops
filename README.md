@@ -429,6 +429,9 @@ Via `make` (see `make help`) or the underlying commands directly:
 | Type-check          | `make typecheck`   | `uv run mypy .` / `npm run typecheck`                          |
 | Format (backend)    | `make format`      | `uv run ruff format . && uv run ruff check --fix .`            |
 | Everything (CI set) | `make check`       | lint + typecheck + test                                        |
+| Demo story          | `make demo`        | `... app.approvals.cli demo-execution` (approval → simulated execution) |
+| Seed pending approval | `make demo-seed-approval` | `... scripts/seed_pending_approval.py` (one for the dashboard) |
+| Prove everything    | `make verify-all`  | every hard-gated eval + audit chain + deps audit + frontend checks |
 
 ## Health endpoints
 
