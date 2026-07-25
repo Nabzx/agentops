@@ -46,10 +46,10 @@ flowchart TB
     APR --- DB
     OBX --- DB
     EXEC --> DB
-    EXEC -.record.-> AUD
-    APR -.record.-> AUD
-    OBS -.wraps.-> api
-    REL -.wraps.-> api
+    EXEC -.->|record| AUD
+    APR -.->|record| AUD
+    OBS -.->|wraps| api
+    REL -.->|wraps| api
     AUD --- DB
 
     WORKER["Outbox worker<br/>FOR UPDATE SKIP LOCKED"] --> OBX

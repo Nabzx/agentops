@@ -76,7 +76,7 @@ Talking points: [docs/portfolio.md](docs/portfolio.md).
 > [docs/approval-action-evaluation.md](docs/approval-action-evaluation.md).
 >
 > **S5 — Workflow State Machine, Checkpointing & Replay.** On top of S0–S4,
-> this stage composes the model tasks, deterministic tools, retrieval and rules into an
+> S5 composes the model tasks, deterministic tools, retrieval and rules into an
 > **explicit, durable, resumable and replayable** support-ticket workflow that safely reaches
 > a human-review, approval, escalation, needs-information or terminal boundary. It adds a
 > versioned state machine, durable hashed checkpoints, lease-based concurrency control, safe
@@ -282,8 +282,8 @@ flowchart LR
     PIPE --> APR["Human approval gate"]
     APR --> OBX[("Durable outbox")]
     OBX --> W["Worker"] --> EXEC["Simulated execution<br/>SIM-REF-…"]
-    APR -.record.-> AUD[("Hash-chained audit")]
-    EXEC -.record.-> AUD
+    APR -.->|record| AUD[("Hash-chained audit")]
+    EXEC -.->|record| AUD
     API --- DB[("PostgreSQL + pgvector")]
 ```
 
