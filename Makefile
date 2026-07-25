@@ -23,6 +23,7 @@ FRONTEND_DIR := frontend
         action-list refund-ledger approval-demo eval-approvals \
         eval-end-to-end deps-audit \
         audit-list audit-verify audit-trace eval-observability \
+        demo demo-seed-approval verify-all \
         test test-backend test-frontend lint lint-backend lint-frontend \
         typecheck typecheck-backend typecheck-frontend format check
 
@@ -217,6 +218,26 @@ demo-rules: ## Run the deterministic layer over the named demo fixtures
 		$(COMPOSE) exec -T backend python -m app.tools.cli run-demo $$fx; \
 		echo; \
 	done
+
+# --- Demo & proof (S10) ------------------------------------------------------
+demo: ## Scripted approval -> simulated execution story (all effects simulated)
+	$(COMPOSE) exec -e LLM_DEFAULT_PROVIDER=mock backend python -m app.approvals.cli demo-execution
+
+demo-seed-approval: ## Put one fresh pending refund approval on the dashboard queue
+	$(COMPOSE) exec -e LLM_DEFAULT_PROVIDER=mock backend python -m scripts.seed_pending_approval
+
+verify-all: ## Run every hard-gated eval + audit chain + deps audit + frontend checks
+	@echo "== retrieval ==" && $(MAKE) eval-retrieval
+	@echo "== model layer ==" && $(MAKE) eval-model-layer
+	@echo "== workflows ==" && $(MAKE) eval-workflows
+	@echo "== approvals/actions ==" && $(MAKE) eval-approvals
+	@echo "== observability/audit ==" && $(MAKE) eval-observability
+	@echo "== end-to-end + adversarial ==" && $(MAKE) eval-end-to-end
+	@echo "== audit hash-chain ==" && $(MAKE) audit-verify
+	@echo "== dependency audit ==" && $(MAKE) deps-audit
+	@echo "== frontend lint/typecheck/test/build ==" \
+		&& cd $(FRONTEND_DIR) && npm run lint && npm run typecheck && npm run test && npm run build
+	@echo "\nverify-all: all gates passed"
 
 # --- Quality (run locally) ---------------------------------------------------
 test-backend: ## Run backend tests
