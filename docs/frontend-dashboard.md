@@ -5,6 +5,12 @@ Agents and Supervisors sign in, work the approval queue, decide approvals, and i
 actions, the outbox, the audit trail, ticket journeys and system health. Every consequential
 figure is labelled **simulated** — the UI only ever renders the PII-safe data the API sends.
 
+| Approval detail + decision | Audit log (chain intact) |
+| --- | --- |
+| ![Approval detail](screenshots/04-approval-detail.png) | ![Audit log](screenshots/07-audit.png) |
+
+More screens in [`docs/screenshots/`](screenshots/).
+
 ## Stack
 
 Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS 3 · Vitest. No component
