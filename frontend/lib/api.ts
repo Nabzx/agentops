@@ -155,4 +155,16 @@ export class Api {
       acceptStatuses: [200],
     });
   }
+
+  metrics(): Promise<string> {
+    return this.client.request<string>("/metrics", { auth: false, raw: true });
+  }
+}
+
+/** Pull a handful of interesting lines out of Prometheus exposition text. */
+export function summariseMetrics(text: string, prefixes: string[]): string[] {
+  return text
+    .split("\n")
+    .filter((line) => line && !line.startsWith("#"))
+    .filter((line) => prefixes.some((p) => line.startsWith(p)));
 }

@@ -17,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Overview", permission: null },
   { href: "/dashboard/approvals", label: "Approvals", permission: "approval_queue_read" },
   { href: "/dashboard/actions", label: "Actions", permission: "action_status_read" },
+  { href: "/dashboard/journey", label: "Journey", permission: "action_status_read" },
   { href: "/dashboard/outbox", label: "Outbox", permission: "outbox_inspect" },
   { href: "/dashboard/audit", label: "Audit", permission: "outbox_inspect" },
   { href: "/dashboard/health", label: "Health", permission: null },
