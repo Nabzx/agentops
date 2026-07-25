@@ -1,32 +1,23 @@
-import { HealthPanel } from "@/components/HealthPanel";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+import { useAuth } from "@/lib/auth";
+import { Spinner } from "@/components/ui";
 
 export default function Home() {
+  const { me, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+    router.replace(me ? "/dashboard" : "/login");
+  }, [me, loading, router]);
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-8 px-6 py-16">
-      <header>
-        <div className="mb-2 inline-flex items-center gap-2">
-          <span className="rounded-md bg-slate-900 px-2 py-1 text-xs font-bold tracking-wide text-white">
-            AgentOps
-          </span>
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-            Foundation mode · S0
-          </span>
-        </div>
-        <h1 className="text-2xl font-semibold text-slate-900">
-          AI Customer Support Operations Platform
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          This is the S0 foundation build. The dashboard, tickets, workflows,
-          approvals and evaluations are not implemented yet — this page only
-          confirms that the frontend, backend and database are wired together.
-        </p>
-      </header>
-
-      <HealthPanel />
-
-      <footer className="text-xs text-slate-400">
-        Next up: S1 — Domain &amp; Synthetic Data.
-      </footer>
+    <main className="flex min-h-screen items-center justify-center">
+      <Spinner label="Starting AgentOps" />
     </main>
   );
 }
