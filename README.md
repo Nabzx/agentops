@@ -9,7 +9,15 @@ consequential action — stops at a **human approval gate** before a durable wor
 executes it exactly once. Every run is traced, costed, audited and scored against a
 golden evaluation set.
 
-> **Current stage: S8 — Full End-to-End Evaluation and Security Hardening (complete).**
+> **Current stage: S9 — Professional Frontend Dashboard (complete).**
+> A role-aware Next.js operator console over the S6–S8 APIs: Agents and Supervisors sign
+> in, work the approval queue, decide approvals, and inspect actions, the outbox, the
+> hash-chained audit trail, ticket journeys and system health. Permission-gated nav and
+> controls, light/dark theming, accessible states, and a PII-safe type layer that only
+> ever renders what the API sends. See
+> [docs/frontend-dashboard.md](docs/frontend-dashboard.md).
+>
+> **S8 — Full End-to-End Evaluation and Security Hardening.**
 > One graded, offline, deterministic run drives 42 real customer-support journeys across
 > every layer — ingestion → classification → tools → retrieval → rules → workflow →
 > approval → simulated execution → audit — with all end-to-end hard gates at 0. Security
@@ -427,8 +435,8 @@ Redis or external network.
 
 - **Every consequential effect is simulated.** Refunds and cancellations are recorded in a
   demonstration ledger / order status with clearly-synthetic `SIM-…` references; no payment
-  processor, Shopify, carrier or email service is ever contacted. The frontend is still the
-  S0 status page.
+  processor, Shopify, carrier or email service is ever contacted — every consequential
+  figure in the dashboard is labelled **simulated**.
 - The default provider is a deterministic **mock**, not a language model: it exercises the
   engine (routing, checkpoints, safety, recovery, execution) rather than language quality.
   Ollama/hosted are optional and never required for tests or CI.
@@ -450,7 +458,7 @@ S0 Foundations → S1 Domain & Synthetic Data → S2 Deterministic Tools & Busin
 S3 Policy Retrieval & Evidence Grounding → S4 Provider Abstraction & Prompt System →
 S5 Workflow State Machine & Checkpointing → S6 Human Approval & Durable Action Execution →
 S7 Observability, Audit & Production Reliability →
-**S8 End-to-end Evaluation & Security Hardening (this stage — complete)** →
-S9 Dashboard → S10 Final polish.
+S8 End-to-end Evaluation & Security Hardening →
+**S9 Professional Frontend Dashboard (this stage — complete)** → S10 Final polish.
 
-**Next up: S9 — the professional frontend dashboard.**
+**Next up: S10 — final polish: README, architecture diagram, demo flow and screenshots.**
