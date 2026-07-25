@@ -9,7 +9,30 @@ consequential action — stops at a **human approval gate** before a durable wor
 executes it exactly once. Every run is traced, costed, audited and scored against a
 golden evaluation set.
 
-> **Current stage: S9 — Professional Frontend Dashboard (complete).**
+| Approval detail + decision | Ticket journey by correlation id |
+| --- | --- |
+| ![Approval detail](docs/screenshots/04-approval-detail.png) | ![Ticket journey](docs/screenshots/08-journey.png) |
+
+**Everything is deterministic, offline and simulated** — no paid API, no external network,
+no real payment/carrier/store is ever contacted. See it in ~10 minutes:
+
+```bash
+make up && make seed          # stack + synthetic data
+make demo                     # approval -> simulated refund, exactly once, in your terminal
+make verify-all               # every hard-gated eval + audit chain + deps + frontend checks
+```
+
+Then open the dashboard at <http://localhost:3000> and follow the
+[demo runbook](docs/demo-runbook.md). Architecture: [docs/architecture.md](docs/architecture.md).
+Talking points: [docs/portfolio.md](docs/portfolio.md).
+
+> **Current stage: S10 — Final Polish (complete).**
+> The project front door: an [architecture map](docs/architecture.md) with system and
+> sequence diagrams, a [10-minute demo runbook](docs/demo-runbook.md), one-command
+> `make demo` / `make verify-all`, dashboard [screenshots](docs/screenshots/), and
+> [portfolio & interview notes](docs/portfolio.md). No new features — legibility and proof.
+>
+> **S9 — Professional Frontend Dashboard.**
 > A role-aware Next.js operator console over the S6–S8 APIs: Agents and Supervisors sign
 > in, work the approval queue, decide approvals, and inspect actions, the outbox, the
 > hash-chained audit trail, ticket journeys and system health. Permission-gated nav and
@@ -246,16 +269,22 @@ Engineer** roles. The goal is to demonstrate the ability to turn an ambiguous bu
 process into a secure, evaluated and reliable production AI workflow — with equal
 attention to the AI components and the software system around them.
 
-## Architecture (S0)
+## Architecture
 
-```
-Next.js frontend  (http://localhost:3000)
-        |
-        v   HTTP (typed API client, CORS)
-FastAPI backend   (http://localhost:8000, docs at /docs)
-        |
-        v   async SQLAlchemy + Alembic
-PostgreSQL + pgvector
+A support ticket flows through an explicit pipeline; every consequential action stops at a
+human approval gate before a durable worker executes it exactly once. Full diagrams (system
++ sequence) and the design rationale are in [docs/architecture.md](docs/architecture.md).
+
+```mermaid
+flowchart LR
+    UI["Next.js dashboard"] -->|"bearer + correlation id"| API["FastAPI backend"]
+    API --> PIPE["classify · tools · retrieve · rules · draft · workflow"]
+    PIPE --> APR["Human approval gate"]
+    APR --> OBX[("Durable outbox")]
+    OBX --> W["Worker"] --> EXEC["Simulated execution<br/>SIM-REF-…"]
+    APR -.record.-> AUD[("Hash-chained audit")]
+    EXEC -.record.-> AUD
+    API --- DB[("PostgreSQL + pgvector")]
 ```
 
 ## Technology stack
@@ -431,12 +460,13 @@ pass), verifies the audit hash-chain, exercises outbox
 processing, and runs the full pytest suite. Nothing in CI requires paid APIs, Ollama,
 Redis or external network.
 
-## Current limitations (S6)
+## Current limitations
 
 - **Every consequential effect is simulated.** Refunds and cancellations are recorded in a
   demonstration ledger / order status with clearly-synthetic `SIM-…` references; no payment
   processor, Shopify, carrier or email service is ever contacted — every consequential
-  figure in the dashboard is labelled **simulated**.
+  figure in the dashboard is labelled **simulated**. Swapping in real integration adapters
+  behind the same durable-outbox contract is the natural next step.
 - The default provider is a deterministic **mock**, not a language model: it exercises the
   engine (routing, checkpoints, safety, recovery, execution) rather than language quality.
   Ollama/hosted are optional and never required for tests or CI.
@@ -459,6 +489,9 @@ S3 Policy Retrieval & Evidence Grounding → S4 Provider Abstraction & Prompt Sy
 S5 Workflow State Machine & Checkpointing → S6 Human Approval & Durable Action Execution →
 S7 Observability, Audit & Production Reliability →
 S8 End-to-end Evaluation & Security Hardening →
-**S9 Professional Frontend Dashboard (this stage — complete)** → S10 Final polish.
+S9 Professional Frontend Dashboard →
+**S10 Final Polish (this stage — complete)**.
 
-**Next up: S10 — final polish: README, architecture diagram, demo flow and screenshots.**
+**All ten stages complete.** See [docs/architecture.md](docs/architecture.md) for the whole
+picture, [docs/demo-runbook.md](docs/demo-runbook.md) to drive it, and
+[docs/portfolio.md](docs/portfolio.md) for the story behind it.
