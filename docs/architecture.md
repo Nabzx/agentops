@@ -144,5 +144,6 @@ action. → [threat-model.md](threat-model.md), [security-hardening.md](security
 | End-to-end eval & security | S8 | [end-to-end-evaluation.md](end-to-end-evaluation.md), [security-hardening.md](security-hardening.md), [threat-model.md](threat-model.md) |
 | Frontend dashboard | S9 | [frontend-dashboard.md](frontend-dashboard.md) |
 | Demo & portfolio | S10 | [demo-runbook.md](demo-runbook.md), [portfolio.md](portfolio.md) |
+| LangGraph pipeline demo | S11 | [workflow-graph-demo.md](workflow-graph-demo.md) |
 
 See the [demo runbook](demo-runbook.md) to drive the whole thing in about ten minutes.
