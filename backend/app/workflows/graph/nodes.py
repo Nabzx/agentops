@@ -13,7 +13,8 @@ out (see docs/workflow-graph-demo.md for what a multi-worker cutover would need)
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable
+from typing import Protocol
 
 from langgraph.runtime import Runtime
 
@@ -49,7 +50,13 @@ _TERMINAL_FAILURES: dict[str, WorkflowFailureCode] = {
     "ownership_blocked": WorkflowFailureCode.OWNERSHIP_BLOCKED,
 }
 
-NodeFn = Callable[[GraphState, Runtime[GraphContext]], Awaitable[dict[str, object]]]
+
+class NodeFn(Protocol):
+    """Matches LangGraph's runtime-aware node shape: runtime is keyword-only."""
+
+    def __call__(
+        self, state: GraphState, *, runtime: Runtime[GraphContext]
+    ) -> Awaitable[dict[str, object]]: ...
 
 
 async def _execute_with_retry(
@@ -75,7 +82,7 @@ def make_step_node(handler_name: str) -> NodeFn:
     assert spec is not None  # active states always have a spec  # noqa: S101
 
     async def node(
-        state: GraphState, runtime: Runtime[GraphContext]
+        state: GraphState, *, runtime: Runtime[GraphContext]
     ) -> dict[str, object]:
         gctx = runtime.context
         assert gctx is not None  # noqa: S101 - always supplied via ainvoke(context=...)

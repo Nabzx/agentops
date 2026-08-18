@@ -38,7 +38,7 @@ async def _actor(session: AsyncSession, email: str) -> AuthenticatedUser:
 
 
 async def await_approval(
-    state: GraphState, runtime: Runtime[GraphContext]
+    state: GraphState, *, runtime: Runtime[GraphContext]
 ) -> dict[str, object]:
     gctx = runtime.context
     assert gctx is not None  # noqa: S101 - always supplied via ainvoke(context=...)
