@@ -14,3 +14,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
 | [0002](0002-keep-monetisation-seams-open.md) | Keep monetisation seams open; permissive core licence | Accepted |
 | [0003](0003-adapter-scoped-sandbox-first-credentials.md) | Adapter-scoped, sandbox-first credentials | Accepted |
+| [0004](0004-name-the-core-ephor.md) | Name the core: Ephor | Accepted |

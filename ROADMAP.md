@@ -94,12 +94,11 @@ unused seats, refund leakage, support-ops. Each new detector is a plugin/PR — 
 
 Locked before the phases that depend on them:
 
-- **Framework name** — not yet locked; lives in this repo as a package, not a separate one.
-  See issue #1. `wayfinder:grilling`
 - **`Action`/`Effect` adapter API** — the interface every integration implements. `wayfinder:prototype`
 - **Exactly-once contract boundary** — what the core guarantees vs. what an adapter must. `wayfinder:grilling`
 - **v1 Stripe action set** — which recovery actions ship first. `wayfinder:grilling`
 
-Settled: **adapter credential model** ([ADR-0003](docs/adr/0003-adapter-scoped-sandbox-first-credentials.md))
+Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
+**adapter credential model** ([ADR-0003](docs/adr/0003-adapter-scoped-sandbox-first-credentials.md))
 and **monetisation seam / core licence** ([ADR-0002](docs/adr/0002-keep-monetisation-seams-open.md),
 core is Apache-2.0).
