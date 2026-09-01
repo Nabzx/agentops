@@ -14,6 +14,7 @@ import argparse
 import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
+from typing import Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -403,11 +404,15 @@ async def _demo_execution() -> None:
     )
 
 
-async def _table_count(factory: object, table: str) -> int:
+_CountableTable = Literal["outbox_jobs", "executed_actions", "refund_ledger_entries"]
+
+
+async def _table_count(factory: object, table: _CountableTable) -> int:
     from sqlalchemy import text
 
     async with factory() as session:  # type: ignore[operator]
-        value = await session.scalar(text(f"SELECT count(*) FROM {table}"))
+        # table is a closed, hardcoded Literal, never external input.
+        value = await session.scalar(text(f"SELECT count(*) FROM {table}"))  # noqa: S608
         return int(value or 0)
 
 

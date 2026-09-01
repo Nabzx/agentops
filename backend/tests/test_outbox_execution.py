@@ -16,6 +16,7 @@ from app.actions.repository import ExecutedActionRepository, RefundLedgerReposit
 from app.approvals.enums import ApprovalStatus
 from app.approvals.repository import ApprovalRequestRepository
 from app.approvals.service import ApprovalService, ApproveRequest, CreateApprovalRequest
+from app.auth.models import AuthenticatedUser
 from app.models.enums import OrderStatus, ShipmentStatus, UserRole
 from app.models.ticket import Ticket
 from app.models.user import User
@@ -80,9 +81,7 @@ async def _truncate_execution(session: AsyncSession) -> None:
     )
 
 
-async def _second_supervisor(session: AsyncSession) -> object:
-    from app.auth.models import AuthenticatedUser
-
+async def _second_supervisor(session: AsyncSession) -> AuthenticatedUser:
     users = list(
         await session.scalars(
             select(User).where(User.role == UserRole.supervisor).order_by(User.email)
@@ -94,9 +93,7 @@ async def _second_supervisor(session: AsyncSession) -> object:
     )
 
 
-async def _agent(session: AsyncSession) -> object:
-    from app.auth.models import AuthenticatedUser
-
+async def _agent(session: AsyncSession) -> AuthenticatedUser:
     user = await session.scalar(
         select(User).where(User.role == UserRole.support_agent).limit(1)
     )

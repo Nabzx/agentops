@@ -7,6 +7,7 @@ effect), lease reclamation, and the Supervisor retry-authorisation path back to 
 from __future__ import annotations
 
 import asyncio
+import uuid
 from datetime import timedelta
 
 from app.actions.errors import ExecutionError, ExecutionErrorCode, technical
@@ -124,7 +125,7 @@ def _tech_injector() -> object:
 
 async def _drive_to_dead_letter(
     factory: async_sessionmaker[AsyncSession],
-) -> tuple[object, object]:
+) -> tuple[uuid.UUID, tuple[uuid.UUID, uuid.UUID]]:
     job_id, approval_id, run_id = await _approved_job(factory)
     worker = _worker(factory, injector=_tech_injector())
     for _ in range(6):
@@ -161,7 +162,7 @@ async def test_supervisor_retry_authorisation_recovers_dead_letter(
         result = await ApprovalService(session, clock=seed_reference_clock()).retry(
             approval_id,
             RetryApprovalRequest(reason="transient blip, retrying"),
-            supervisor,  # type: ignore[arg-type]
+            supervisor,
         )
         await session.commit()
         assert result.status == ApprovalStatus.EXECUTION_PENDING

@@ -18,7 +18,7 @@ from app.workflows.service import ReplayWorkflowRequest, SupportWorkflowService
 from hypothesis import given
 from hypothesis import strategies as st
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from tests.test_outbox_execution import _approved_job, maker  # noqa: F401
 from tests.test_outbox_worker import _worker
@@ -46,7 +46,7 @@ def test_backoff_never_exceeds_cap_plus_jitter(
 
 # --- DB-backed invariants -----------------------------------------------------------
 async def test_completed_job_is_never_claimed(
-    maker: async_sessionmaker,  # noqa: F811
+    maker: async_sessionmaker[AsyncSession],  # noqa: F811
 ) -> None:
     job_id, _, _ = await _approved_job(maker)
     await _worker(maker).run_once()  # succeeds → job terminal
@@ -64,7 +64,7 @@ async def test_completed_job_is_never_claimed(
 
 
 async def test_dead_letter_job_is_never_auto_claimed(
-    maker: async_sessionmaker,  # noqa: F811
+    maker: async_sessionmaker[AsyncSession],  # noqa: F811
 ) -> None:
     job_id, _, _ = await _approved_job(maker)
     async with maker() as session:
@@ -80,7 +80,7 @@ async def test_dead_letter_job_is_never_auto_claimed(
 
 
 async def test_default_replay_creates_no_business_effect(
-    maker: async_sessionmaker,  # noqa: F811
+    maker: async_sessionmaker[AsyncSession],  # noqa: F811
 ) -> None:
     # Execute a refund, then replay the run: replay must not touch money or the queue.
     job_id, _, run_id = await _approved_job(maker)

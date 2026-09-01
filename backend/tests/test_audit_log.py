@@ -12,6 +12,7 @@ from app.approvals.service import ApprovalService, CreateApprovalRequest
 from app.audit.enums import AuditEventType
 from app.audit.repository import AuditRepository
 from app.audit.service import AuditService
+from app.models.audit import AuditEvent
 from app.outbox.processor import OutboxProcessor, ProcessOutcome
 from app.rules.clock import seed_reference_clock
 from sqlalchemy import text
@@ -24,7 +25,7 @@ from tests.test_outbox_execution import (  # reuse the execution harness
 )
 
 
-def _event_types(rows: list) -> set[str]:
+def _event_types(rows: list[AuditEvent]) -> set[str]:
     return {r.event_type for r in rows}
 
 

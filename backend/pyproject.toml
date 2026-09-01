@@ -66,6 +66,7 @@ ignore = [
 "tests/*" = ["S101", "S105", "S106"]  # asserts and inline test secrets are expected
 "alembic/*" = ["N999", "E501"]  # generated migration file naming/length
 "app/seeds/*" = ["E501", "S311"]  # long synthetic strings; non-crypto RNG is fine here
+"app/approvals/cli.py" = ["S101"]  # demo script asserting invariants on data it just created
 
 # --- MyPy: near-strict typing -------------------------------------------------
 [tool.mypy]

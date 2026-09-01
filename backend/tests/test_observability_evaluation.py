@@ -8,7 +8,7 @@ import pytest
 from app.audit.evaluation import HARD_GATES, run_evaluation
 from app.models.ticket import Ticket
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from tests.conftest import TEST_DATABASE_URL
 
@@ -16,7 +16,7 @@ pytestmark = pytest.mark.usefixtures("_prepare_test_database")
 
 
 @pytest.fixture
-async def factory() -> AsyncIterator[async_sessionmaker]:
+async def factory() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
     from app.seeds.runner import seed
 
     from tests.test_approval_service import _truncate_all
@@ -44,7 +44,9 @@ async def factory() -> AsyncIterator[async_sessionmaker]:
         await engine.dispose()
 
 
-async def test_observability_hard_gates_pass(factory: async_sessionmaker) -> None:
+async def test_observability_hard_gates_pass(
+    factory: async_sessionmaker[AsyncSession],
+) -> None:
     evaluation = await run_evaluation(write_report=False, session_factory=factory)
     assert evaluation.scenarios_run == evaluation.scenarios_passed, evaluation.failures
     for gate in HARD_GATES:
