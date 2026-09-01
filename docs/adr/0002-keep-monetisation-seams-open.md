@@ -1,6 +1,6 @@
 # 0002. Keep monetisation seams open; permissive core licence
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-27
 - **Driven by:** #6 (`wayfinder:research`) — see [research](../research/monetisation-seam.md)
 
@@ -33,9 +33,8 @@ metering, or enterprise governance (SSO / RBAC / audit retention / support).
 **Licence:** because every viable seam is operational, a **permissive licence (Apache-2.0) for
 the core** keeps a hosted edge viable *and* maximises launch adoption (the Temporal/Supabase
 pattern). Do **not** adopt a source-available licence pre-emptively; defer any restrictive
-licence to a *future* hosted component only. _Note: the repo currently ships **MIT** (added in
-S10); adopting this ADR means moving the core to Apache-2.0 — that licence change is left to the
-maintainer to confirm on merge._
+licence to a *future* hosted component only. _The repo shipped **MIT** as of S10; the maintainer
+confirmed the move to **Apache-2.0** on 2026-09-01, and `LICENSE` was updated accordingly._
 
 ## Alternatives considered
 
@@ -48,5 +47,4 @@ maintainer to confirm on merge._
 Extraction work (#9–#12, #2) must preserve: core-depends-only-on-Adapter-interface; a pluggable
 Adapter registry; Adapter-scoped credentials; the Audit store behind an interface; Approval/Audit
 exposed as a read-model/event stream; `Permission` as the single enforcement point; and executed
-Action / Recoverable value as countable events. A maintainer decision on **MIT → Apache-2.0** is
-outstanding.
+Action / Recoverable value as countable events.
