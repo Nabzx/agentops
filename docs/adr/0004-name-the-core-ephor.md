@@ -86,9 +86,11 @@ Full list discussed with the maintainer, for the record:
 - Unblocks #9 (scaffold the core package layout) - no other open decision blocks it.
 - The package directory, Python module name, and CLI/docs vocabulary going forward use `ephor`
   (lower-case, single word) as the identifier.
-- `github.com/ephor` is not available; the project lives at `github.com/Nabzx/agentops` (see the
-  single-repo decision) so this doesn't block anything today, but a future dedicated repo would
-  need a different account/org name.
+- `github.com/ephor` (the account/org) is not available - but the repo itself was renamed from
+  `agentops` to `ephor` immediately after this ADR landed (`github.com/Nabzx/ephor`), so the
+  single-repo decision holds, just under the new name. Note this makes the repo's own name lead
+  with one internal package (the core) rather than the umbrella project - AgentOps the demo and
+  the Stripe flagship both still live here too, as consumers of Ephor.
 - `PyPI: ephor` is worth claiming defensively once the package is real, even though nothing
   publishes there yet.
 - README/marketing copy should lean on the historical story (a 2,500-year-old check on power) to
