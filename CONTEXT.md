@@ -71,6 +71,15 @@ the first thing built on it is **the flagship detector**.
   asserted. It is exactly-once *effect*, not exactly-once delivery.
   _Avoid_: at-least-once, idempotent (as a synonym), guaranteed delivery
 
+**Needs-manual-reconciliation**
+: An Outbox job state, distinct from a failure: the worker crashed after an Adapter's external
+  call may have succeeded but before that outcome was committed, and the Adapter cannot confirm
+  it. The core halts - it never auto-retries across this window - because retrying could risk a
+  second real Effect. Only reachable for an Adapter that declares itself not idempotent. See
+  [ADR-0005](docs/adr/0005-exactly-once-boundary.md).
+  _Avoid_: failed, error, stuck (it is neither failed nor an error - the Effect may well have
+  happened)
+
 ## The record
 
 **Audit entry**
