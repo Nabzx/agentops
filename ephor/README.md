@@ -7,17 +7,17 @@ exactly once** onto a tamper-evident record.
 Named after the Spartan magistrates whose office existed to check and approve the king's
 actions before they happened - see [ADR-0004](../docs/adr/0004-name-the-core-ephor.md).
 
-This package is currently a skeleton (see issue #9). The module layout below mirrors the
-vocabulary in [CONTEXT.md](../CONTEXT.md); each module fills in once its design is locked:
+The module layout below mirrors the vocabulary in [CONTEXT.md](../CONTEXT.md); each fills in as
+its design locks (see [ROADMAP.md](../ROADMAP.md) Phase 1):
 
-| Module | Fills in once | Vocabulary |
+| Module | Status | Vocabulary |
 | --- | --- | --- |
-| `actions.py` | now | `Action`, `Proposal` |
-| `approvals.py` | now | `Approval request`, `Snapshot`, `Decision` |
-| `effects.py` | #2 (adapter interface) locked | `Effect`, `Adapter` |
-| `outbox.py` | #3 (exactly-once boundary) locked | `Outbox job`, `Worker`, `Idempotency key`, `Exactly-once` |
-| `audit.py` | now | `Audit entry`, `Audit chain`, `Correlation id` |
-| `permissions.py` | now | `Permission`, `Requester`, `Approver` |
+| `actions.py` | skeleton | `Action`, `Proposal` |
+| `approvals.py` | skeleton | `Approval request`, `Snapshot`, `Decision` |
+| `effects.py` | interface locked ([ADR-0006](../docs/adr/0006-adapter-interface.md)), not yet implemented | `Effect`, `Adapter` |
+| `outbox.py` | boundary locked ([ADR-0005](../docs/adr/0005-exactly-once-boundary.md)), not yet implemented | `Outbox job`, `Worker`, `Idempotency key`, `Exactly-once` |
+| `audit.py` | **implemented** ([ADR-0007](../docs/adr/0007-audit-store-interface.md)) | `Audit entry`, `Audit chain`, `Correlation id` |
+| `permissions.py` | skeleton | `Permission`, `Requester`, `Approver` |
 
 ## Developing
 

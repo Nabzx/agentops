@@ -48,10 +48,14 @@ The support-ops app that AgentOps is today becomes the second example on the cor
 
 ## Phase 1 — v0.1: Extract the core (Track A)
 
-- [ ] Carve the safe-action layer into its own package (within this repo) with a public API
-- [ ] Define the `Action`/`Effect` adapter interface (see the adapter-API decision)
+- [ ] Carve the safe-action layer into its own package (within this repo) with a public API -
+      audit is extracted and tested ([ADR-0007](docs/adr/0007-audit-store-interface.md));
+      approvals and outbox remain (#11, #12) and need a Snapshot redesign first, see ADR-0007
+- [ ] Define the `Action`/`Effect` adapter interface (see the adapter-API decision) - locked
+      ([ADR-0006](docs/adr/0006-adapter-interface.md)), not yet implemented in `ephor/`
 - [ ] Ship an in-memory mock adapter + a 20-line propose→approve→execute→audit example
-- [ ] Port the existing test suite; keep exactly-once and audit gates green
+- [ ] Port the existing test suite; keep exactly-once and audit gates green - audit's suite is
+      ported (`ephor/tests/test_audit.py`); backend's 423 tests confirmed still green throughout
 
 **Done when:** a stranger clones the repo, runs one command, and a short script proves the
 propose→approve→execute→audit loop with the mock adapter — no external service, no signup.
