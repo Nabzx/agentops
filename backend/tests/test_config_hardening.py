@@ -44,7 +44,10 @@ def test_production_refuses_wildcard_cors() -> None:
         _prod(backend_cors_origins=["*"])
 
 
-def test_development_allows_defaults() -> None:
-    # The dev secret and debug are fine outside production.
+def test_development_allows_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The dev secret and debug are fine outside production. CI sets JWT_SECRET
+    # globally for the app to use elsewhere in the job; clear it here so this test
+    # exercises the real field default rather than whatever the ambient env holds.
+    monkeypatch.delenv("JWT_SECRET", raising=False)
     settings = Settings(environment="development", debug=True)
     assert settings.jwt_secret == DEV_ONLY_JWT_SECRET
