@@ -36,3 +36,17 @@ How work happens in this repo. Two kinds of agent, one human gate.
 - `docs/adr/` — architecture decision records. One ADR per locked decision.
 - [ROADMAP.md](ROADMAP.md) — phases, tracks, tagged builds, open decisions.
 - The per-component notes in `docs/` (see [docs/architecture.md](docs/architecture.md)) describe the built platform (S0–S10).
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues (`github.com/Nabzx/agentops`), managed via the `gh` CLI. See [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md).
+
+### Triage labels
+
+The five canonical triage roles, each mapped to a label string of the same name (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See [docs/agents/triage-labels.md](docs/agents/triage-labels.md).
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See [docs/agents/domain.md](docs/agents/domain.md).
