@@ -94,11 +94,13 @@ unused seats, refund leakage, support-ops. Each new detector is a plugin/PR — 
 
 Locked before the phases that depend on them:
 
-- **`Action`/`Effect` adapter API** — the interface every integration implements. `wayfinder:prototype`
-- **v1 Stripe action set** — which recovery actions ship first (Track B only). `wayfinder:grilling`
+- **v1 Stripe action set** — which recovery actions ship first (Track B only, doesn't block core
+  extraction). `wayfinder:grilling`
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
+**adapter interface** ([ADR-0006](docs/adr/0006-adapter-interface.md)),
 **adapter credential model** ([ADR-0003](docs/adr/0003-adapter-scoped-sandbox-first-credentials.md))
 and **monetisation seam / core licence** ([ADR-0002](docs/adr/0002-keep-monetisation-seams-open.md),
-core is Apache-2.0).
+core is Apache-2.0). **Track A (core extraction) is fully unblocked** — #10, #11, #12 are all
+`ready-for-agent`.
