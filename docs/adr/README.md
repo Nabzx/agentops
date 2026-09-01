@@ -17,3 +17,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0004](0004-name-the-core-ephor.md) | Name the core: Ephor | Accepted |
 | [0005](0005-exactly-once-boundary.md) | Exactly-once contract: core vs. Adapter | Accepted |
 | [0006](0006-adapter-interface.md) | The Action/Effect Adapter interface | Accepted |
+| [0007](0007-audit-store-interface.md) | Extract the audit module: an AuditStore interface | Accepted |

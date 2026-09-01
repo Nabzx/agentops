@@ -36,16 +36,17 @@ class AuditRepository:
         self,
         *,
         event_type: str,
-        actor_user_id: uuid.UUID | None,
         actor_role: str,
         subject_type: str,
-        subject_id: uuid.UUID | None,
         correlation_id: str,
         summary: str,
-        metadata: dict[str, object],
         occurred_at: datetime,
+        actor_user_id: uuid.UUID | None = None,
+        subject_id: uuid.UUID | None = None,
+        metadata: dict[str, object] | None = None,
     ) -> AuditEvent:
         # Serialise appends within this transaction so sequence + chain stay consistent.
+        metadata = metadata or {}
         await self._session.execute(
             text("SELECT pg_advisory_xact_lock(:k)"), {"k": _AUDIT_LOCK_KEY}
         )
@@ -89,8 +90,8 @@ class AuditRepository:
         await self._session.flush()
         return entry
 
-    async def get(self, event_id: uuid.UUID) -> AuditEvent | None:
-        return await self._session.get(AuditEvent, event_id)
+    async def get(self, entry_id: uuid.UUID) -> AuditEvent | None:
+        return await self._session.get(AuditEvent, entry_id)
 
     async def count(self) -> int:
         return int(
