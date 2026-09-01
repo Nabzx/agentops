@@ -1,6 +1,6 @@
 # 0003. Adapter-scoped, sandbox-first credentials
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-27
 - **Driven by:** #5 (`wayfinder:research`) — see [research](../research/adapter-credentials.md)
 
