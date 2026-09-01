@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Read AGENTS.md first
-    url: https://github.com/Nabzx/agentops/blob/main/AGENTS.md
+    url: https://github.com/Nabzx/ephor/blob/main/AGENTS.md
     about: Understand the Wayfinder loop before filing - it decides which template fits.

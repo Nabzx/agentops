@@ -41,7 +41,7 @@ How work happens in this repo. Two kinds of agent, one human gate.
 
 ### Issue tracker
 
-Issues and specs live in GitHub Issues (`github.com/Nabzx/agentops`), managed via the `gh` CLI. See [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md).
+Issues and specs live in GitHub Issues (`github.com/Nabzx/ephor`), managed via the `gh` CLI. See [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md).
 
 ### Triage labels
 
