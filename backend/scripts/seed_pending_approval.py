@@ -1,21 +1,19 @@
 """Seed one *pending* refund approval so the dashboard decision flow is demonstrable.
 
-The end-to-end demo (``make demo`` / ``make approval-demo``) drives an approval all the way
-to a simulated refund, which leaves the queue empty. Run this to put a fresh pending approval
-back on the board for the ``DEMO-REFUND-APPROVAL-001`` ticket:
+The end-to-end demo (``make demo`` / ``make approval-demo``) drives an approval all the
+way to a simulated refund, which leaves the queue empty. Run this to put a fresh pending
+approval back on the board for the ``DEMO-REFUND-APPROVAL-001`` ticket:
 
     make demo-seed-approval
 
-It resets the workflow/approval/outbox/execution tables, starts the demo refund workflow,
-and raises the approval as a Support Agent — stopping short of any decision. Every effect is
-simulated and offline. Development/demo use only.
+It resets the workflow/approval/outbox/execution tables, starts the demo refund
+workflow, and raises the approval as a Support Agent - stopping short of any decision.
+Every effect is simulated and offline. Development/demo use only.
 """
 
 from __future__ import annotations
 
 import asyncio
-
-from sqlalchemy import select, text
 
 from app.approvals.service import ApprovalService, CreateApprovalRequest
 from app.auth.models import AuthenticatedUser
@@ -26,6 +24,7 @@ from app.models.user import User
 from app.rules.clock import seed_reference_clock
 from app.workflows.repository import WorkflowRepository
 from app.workflows.service import StartWorkflowRequest, SupportWorkflowService
+from sqlalchemy import select, text
 
 
 async def main() -> None:

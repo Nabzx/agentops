@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import pytest
 from app.approvals.enums import ApprovalDecisionType, ApprovalStatus
@@ -57,6 +57,9 @@ class _LaterClock:
 
     def now(self) -> datetime:
         return self._at
+
+    def today(self) -> date:
+        return self._at.date()
 
 
 @pytest.fixture
@@ -321,6 +324,7 @@ async def test_approve_writes_step_and_checkpoint(
         # The decision metadata lives on the step summary; the checkpoint stays a
         # valid, hash-matching workflow state.
         metadata = granted.output_summary_json
+        assert metadata is not None
         assert metadata["approval_request_id"] == str(approval_id)
         assert metadata["actor_user_id"] == str(supervisor.user_id)
         checkpoint = await repo.get_latest_checkpoint(run_id)

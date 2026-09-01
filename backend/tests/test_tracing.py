@@ -16,9 +16,8 @@ def test_child_spans_have_parents_and_no_orphans() -> None:
     exporter = CollectingExporter()
     tracer = Tracer(exporter, clock=seed_reference_clock())
     with tracer.trace("root"):
-        with tracer.span("child-a"):
-            with tracer.span("grandchild"):
-                pass
+        with tracer.span("child-a"), tracer.span("grandchild"):
+            pass
         with tracer.span("child-b"):
             pass
     names = {s.name: s for s in exporter.spans}

@@ -20,19 +20,23 @@ def _settings(**kw: object) -> Settings:
 # --- circuit breaker ----------------------------------------------------------------
 def test_breaker_opens_after_threshold_and_recovers() -> None:
     breaker = CircuitBreaker("hosted", threshold=3, cooldown_seconds=10.0)
-    assert breaker.state is BreakerState.CLOSED
+    state: BreakerState = breaker.state
+    assert state is BreakerState.CLOSED
     for _ in range(3):
         assert breaker.allow(now=0.0)
         breaker.record_failure(now=0.0)
     # Open now; requests are denied until the cooldown passes.
-    assert breaker.state is BreakerState.OPEN
+    state = breaker.state
+    assert state is BreakerState.OPEN
     assert not breaker.allow(now=5.0)
     # After cooldown, one probe is allowed (half-open).
     assert breaker.allow(now=11.0)
-    assert breaker.state is BreakerState.HALF_OPEN
+    state = breaker.state
+    assert state is BreakerState.HALF_OPEN
     # A successful probe closes the breaker.
     breaker.record_success()
-    assert breaker.state is BreakerState.CLOSED
+    state = breaker.state
+    assert state is BreakerState.CLOSED
 
 
 def test_half_open_failure_reopens() -> None:

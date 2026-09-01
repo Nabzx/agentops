@@ -11,6 +11,7 @@ ids and never PII or secrets.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import signal
 import uuid
 from dataclasses import dataclass, field
@@ -114,13 +115,11 @@ class OutboxWorker:
                 processed = 0
             if processed == 0:
                 # No transaction is held across the sleep.
-                try:
+                with contextlib.suppress(TimeoutError):
                     await asyncio.wait_for(
                         self._stop.wait(),
                         timeout=self._settings.worker_poll_interval_seconds,
                     )
-                except TimeoutError:
-                    pass
         logger.info(
             "outbox_worker_stopped",
             extra={"worker_id": self._settings.worker_id, **self.stats.by_outcome},
@@ -161,10 +160,9 @@ async def _main() -> None:
     for sig in (signal.SIGINT, signal.SIGTERM):
         with_suppress = getattr(loop, "add_signal_handler", None)
         if with_suppress is not None:
-            try:
+            # pragma: no cover - platform dependent
+            with contextlib.suppress(NotImplementedError):
                 loop.add_signal_handler(sig, worker.request_stop)
-            except NotImplementedError:  # pragma: no cover - platform dependent
-                pass
     await worker.run_forever()
 
 

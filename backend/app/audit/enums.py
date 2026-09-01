@@ -14,7 +14,7 @@ class AuditEventType(StrEnum):
     # authentication
     AUTH_LOGIN_SUCCEEDED = "auth_login_succeeded"
     AUTH_LOGIN_FAILED = "auth_login_failed"
-    AUTH_TOKEN_REFRESHED = "auth_token_refreshed"
+    AUTH_TOKEN_REFRESHED = "auth_token_refreshed"  # noqa: S105 - event-type label, not a secret
     # approvals
     APPROVAL_REQUESTED = "approval_requested"
     APPROVAL_APPROVED = "approval_approved"

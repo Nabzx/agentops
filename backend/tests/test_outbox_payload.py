@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import TypedDict
 
 import pytest
 from app.actions.enums import ExecutionActionType
@@ -77,9 +78,16 @@ def test_payload_is_pii_safe() -> None:
     assert OUTBOX_PAYLOAD_VERSION in _payload().canonical_json()
 
 
+class _BackoffKwargs(TypedDict):
+    base_seconds: float
+    max_seconds: float
+    jitter_ratio: float
+    job_id: uuid.UUID
+
+
 def test_backoff_is_bounded_and_deterministic() -> None:
     job_id = uuid.uuid4()
-    kwargs = {
+    kwargs: _BackoffKwargs = {
         "base_seconds": 2.0,
         "max_seconds": 60.0,
         "jitter_ratio": 0.2,
@@ -88,7 +96,7 @@ def test_backoff_is_bounded_and_deterministic() -> None:
     first = compute_backoff_seconds(attempt=1, **kwargs)
     assert first == compute_backoff_seconds(attempt=1, **kwargs)  # deterministic
     # Monotonic growth up to the cap (compare medians without jitter).
-    no_jitter = {**kwargs, "jitter_ratio": 0.0}
+    no_jitter: _BackoffKwargs = {**kwargs, "jitter_ratio": 0.0}
     assert compute_backoff_seconds(attempt=1, **no_jitter) == 2.0
     assert compute_backoff_seconds(attempt=2, **no_jitter) == 4.0
     assert compute_backoff_seconds(attempt=10, **no_jitter) == 60.0  # capped
