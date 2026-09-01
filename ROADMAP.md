@@ -24,8 +24,11 @@ merges every PR; every phase ends in a **tagged, runnable build**.
 
 - **Track A — Core framework.** Extract the approval gate, durable transactional outbox,
   exactly-once executor, hash-chained audit and RBAC out of the AgentOps app into a
-  standalone, documented, installable package behind an `Action`/`Effect` **adapter
-  interface**, shipping with an in-memory mock adapter so it runs with zero setup.
+  standalone, documented package — living in this same repo, not a separate one — behind an
+  `Action`/`Effect` **adapter interface**, shipping with an in-memory mock adapter so it runs
+  with zero setup. Optimised first for **clone it, run one command, watch it work**; a
+  published `pip install` package is a later nice-to-have once someone actually wants to
+  depend on it, not the launch bar.
 - **Track B — Flagship detector.** The **Stripe revenue-recovery** detector: scan charges and
   subscriptions → propose recovery actions → (Track A approval gate) → execute against Stripe
   test mode → audit. The *first of many* detectors.
@@ -45,12 +48,14 @@ The support-ops app that AgentOps is today becomes the second example on the cor
 
 ## Phase 1 — v0.1: Extract the core (Track A)
 
-- [ ] Carve the safe-action layer into its own package with a public API
+- [ ] Carve the safe-action layer into its own package (within this repo) with a public API
 - [ ] Define the `Action`/`Effect` adapter interface (see the adapter-API decision)
 - [ ] Ship an in-memory mock adapter + a 20-line propose→approve→execute→audit example
 - [ ] Port the existing test suite; keep exactly-once and audit gates green
 
-**Done when:** `pip install` + a short script proves the loop with the mock adapter. Tag `v0.1`.
+**Done when:** a stranger clones the repo, runs one command, and a short script proves the
+propose→approve→execute→audit loop with the mock adapter — no external service, no signup.
+Tag `v0.1`.
 
 ## Phase 2 — v0.2: Runnable in 2 minutes (Track A)
 
@@ -58,7 +63,8 @@ The support-ops app that AgentOps is today becomes the second example on the cor
 - [ ] One **real** integration adapter on sandbox credentials (Stripe test mode)
 - [ ] README first screen: logo, one-liner, a **GIF of the loop**, 3-line quickstart
 
-**Done when:** a stranger clones it and sees a real approved action execute in under 2 minutes. Tag `v0.2`.
+**Done when:** a stranger clones it and sees a real approved action execute in under 2 minutes,
+straight from the README, with nothing to install first. Tag `v0.2`.
 
 ## Phase 3 — v0.3: Stripe flagship (Track B)
 
@@ -88,9 +94,12 @@ unused seats, refund leakage, support-ops. Each new detector is a plugin/PR — 
 
 Locked before the phases that depend on them:
 
-- **Framework name** — Interlock / Airlock / Warrant (availability unchecked). `wayfinder:grilling`
+- **Framework name** — not yet locked; lives in this repo as a package, not a separate one.
+  See issue #1. `wayfinder:grilling`
 - **`Action`/`Effect` adapter API** — the interface every integration implements. `wayfinder:prototype`
-- **Exactly-once contract boundary** — what the core guarantees vs. what an adapter must. `wayfinder:map`
+- **Exactly-once contract boundary** — what the core guarantees vs. what an adapter must. `wayfinder:grilling`
 - **v1 Stripe action set** — which recovery actions ship first. `wayfinder:grilling`
-- **Secrets / credential model** — how adapters hold scoped, sandbox-first credentials. `wayfinder:research`
-- **Monetisation seam** — where a future hosted/paid edge would attach (kept open, not built). `wayfinder:research`
+
+Settled: **adapter credential model** ([ADR-0003](docs/adr/0003-adapter-scoped-sandbox-first-credentials.md))
+and **monetisation seam / core licence** ([ADR-0002](docs/adr/0002-keep-monetisation-seams-open.md),
+core is Apache-2.0).
