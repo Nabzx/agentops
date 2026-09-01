@@ -37,9 +37,9 @@ The support-ops app that AgentOps is today becomes the second example on the cor
 ## Phase 0 — Bootstrap & position (scaffold)
 
 - [x] Lock positioning: name shortlist, one-liner, narrow-flagship decision (see `wayfinder:map`)
-- [ ] Push S0–S10 to the remote; branch protection (PR + 1 review); CI on every PR
-- [ ] Operating docs in place: this roadmap, [CONTEXT.md](CONTEXT.md), [AGENTS.md](AGENTS.md), `docs/adr/`
-- [ ] Label taxonomy created; open decisions seeded as Wayfinder issues
+- [x] Push S0–S10 to the remote; CI on every PR (branch protection skipped — solo repo, see #7)
+- [x] Operating docs in place: this roadmap, [CONTEXT.md](CONTEXT.md), [AGENTS.md](AGENTS.md), `docs/adr/`
+- [x] Label taxonomy created; open decisions seeded as Wayfinder issues
 
 **Done when:** the repo runs the loop — Wayfinder issues open, `ready-for-agent` specs queued, CI green on PRs.
 
