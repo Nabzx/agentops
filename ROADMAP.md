@@ -1,8 +1,9 @@
 # Roadmap
 
-AgentOps the platform is built (S0–S10 — see the [README](README.md)). This roadmap covers
-the **next chapter**: extracting the reusable **safe-action core** and shipping a **narrow
-flagship detector** on top of it, as an open-source project.
+AgentOps the platform is built (S0–S10 — see the [README](README.md)). This roadmap covered
+extracting the reusable **safe-action core** and shipping a **narrow flagship detector** on top
+of it as an open-source project (Phases 0–3, all done) - and now covers proving that flagship is
+worth real money to a real customer, per [ADR-0014](docs/adr/0014-product-direction-recovery-wedge-and-platform-thesis.md).
 
 Work runs agent-driven on **two parallel tracks** that rarely touch the same files. Wayfinder
 decides *what and how*; implementation agents build only locked specs; a human reviews and
@@ -94,18 +95,44 @@ straight from the README, with nothing to install first. Tag `v0.2`. **Met.**
 
 **Done when:** the flagship demo runs end to end on test data. Tag `v0.3`. **Met.**
 
-## Phase 4 — v1.0: Launch
+## Phase 4 — v1.0: Prove the wedge on real money
 
-- [ ] Docs site, demo video, CONTRIBUTING + issue templates
-- [ ] Show HN + relevant subreddits + a thread; update the CV bullet with traction
+Reframed by [ADR-0014](docs/adr/0014-product-direction-recovery-wedge-and-platform-thesis.md):
+the goal is a real design partner recovering real revenue on commission, not a launch post. None
+of the below is built yet, and none of it should be until a design partner exists to build it for.
 
-**Done when:** it's live and posted. Tag `v1.0`.
+- [ ] A recovered-value ledger - every executed retry produces a discrete, queryable "recovered
+      £X" record (the seam ADR-0002 named and left unbuilt), not just an audit-log entry
+- [ ] Multi-tenant accounts - isolated credentials, proposals and audit trail per customer,
+      instead of `stripe-recovery`'s current one-account assumption
+- [ ] Stripe Connect - acting on a customer's own Stripe account, replacing
+      `StripeRecoverySettings`'s single-key model (a real change to ADR-0003's credential story)
+- [ ] Commission billing on recovered value - the same propose-approve-execute-audit shape,
+      turned on itself
+- [ ] Docs site, demo video, CONTRIBUTING + issue templates, Show HN - still worth doing, but as
+      a consequence of the wedge working, not the goal itself
 
-## Phase 5 — Beyond: the broad vision
+**Done when:** one real account has had real revenue recovered and commission genuinely billed on
+it. Tag `v1.0`.
 
-The "automated FDE" is a **roadmap of detectors** on one safe-action core: cloud-cost waste,
-unused seats, refund leakage, support-ops. Each new detector is a plugin/PR — this is where
-"audit your whole business" ships, one trustworthy detector at a time.
+## Phase 5 — Beyond: the platform thesis, and what's shelved
+
+**The platform thesis** ([ADR-0014](docs/adr/0014-product-direction-recovery-wedge-and-platform-thesis.md)):
+once the wedge holds up on real money, `ephor` itself - the safety/trust layer, not the Stripe
+detector - is the thing other agent builders would want, sold as infrastructure they embed
+(usage-priced: per action executed, per audited event). This is the direction Track A's real
+extraction was always aimed at proving out; it's a "grow into," not a parallel effort to start
+alongside Phase 4.
+
+**Shelved, not rejected** (ADR-0014): a crypto/DeFi treasury-operations Adapter (irreversibility
+makes the safety story land even harder than Stripe does, but needs a wallet integration built
+from nothing) and AI-governance/compliance tooling sold to a risk buyer at regulated enterprises
+(a real fit for the audit chain and approval gate, but too slow a sales cycle for a solo,
+pre-revenue build). Both stay real options once the wedge has proven the engine on real money.
+
+More detectors on the same core (cloud-cost waste, unused seats, support-ops) remain the natural
+long-tail once the platform thesis is being pursued for real - each one a plugin/PR, the same
+shape `stripe-recovery` already validated once.
 
 ---
 
@@ -119,9 +146,12 @@ Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-cor
 **adapter credential model** ([ADR-0003](docs/adr/0003-adapter-scoped-sandbox-first-credentials.md)),
 **monetisation seam / core licence** ([ADR-0002](docs/adr/0002-keep-monetisation-seams-open.md),
 core is Apache-2.0), **v1 Stripe action set** — retry a soft-declined charge, and only that
-([ADR-0011](docs/adr/0011-v1-stripe-action-set.md)), and **the real Stripe test-mode client's
-shape** ([ADR-0013](docs/adr/0013-real-stripe-test-mode-client.md)). **Track A (core extraction)
-is done** — #10, #11, #12 are all closed and wired into AgentOps for real (#32, #36, #38).
-**Track B is done too** — #14 (the flagship) and #51 (the real Stripe client) are both closed;
-`FakeStripeClient` stays the default, `StripeTestModeClient` is one env var away. Phase 4 (launch)
-is what's left.
+([ADR-0011](docs/adr/0011-v1-stripe-action-set.md)), **the real Stripe test-mode client's shape**
+([ADR-0013](docs/adr/0013-real-stripe-test-mode-client.md)), and **product direction** — commission-
+based recovery as the wedge, the safety core as the platform thesis to grow into
+([ADR-0014](docs/adr/0014-product-direction-recovery-wedge-and-platform-thesis.md)). **Track A
+(core extraction) is done** — #10, #11, #12 are all closed and wired into AgentOps for real (#32,
+#36, #38). **Track B is done too** — #14 (the flagship) and #51 (the real Stripe client) are both
+closed; `FakeStripeClient` stays the default, `StripeTestModeClient` is one env var away. What's
+left is Phase 4 as ADR-0014 reframed it — finding a design partner, not more engineering on a
+demo shape that already works.
