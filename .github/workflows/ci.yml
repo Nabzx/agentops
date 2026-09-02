@@ -40,6 +40,38 @@ jobs:
       - name: Tests
         run: uv run pytest
 
+  stripe-recovery:
+    name: Stripe recovery flagship (ruff, mypy, pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: stripe-recovery
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: MyPy
+        run: uv run mypy .
+
+      - name: Tests
+        run: uv run pytest
+
+      - name: Run the end-to-end demo
+        run: uv run python -m stripe_recovery.demo
+
   backend-quality:
     name: Backend quality (ruff, mypy)
     runs-on: ubuntu-latest
