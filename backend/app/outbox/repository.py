@@ -259,6 +259,9 @@ class OutboxAttemptRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def get(self, attempt_id: uuid.UUID) -> OutboxAttempt | None:
+        return await self._session.get(OutboxAttempt, attempt_id)
+
     async def next_attempt_number(self, job_id: uuid.UUID) -> int:
         stmt = select(func.coalesce(func.max(OutboxAttempt.attempt_number), 0)).where(
             OutboxAttempt.outbox_job_id == job_id
