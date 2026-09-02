@@ -53,11 +53,12 @@ The support-ops app that AgentOps is today becomes the second example on the cor
       ([ADR-0009](docs/adr/0009-approval-gate-extraction.md)) and the outbox/worker
       ([ADR-0010](docs/adr/0010-outbox-worker-extraction.md)) are all extracted and tested -
       Track A's three extraction issues (#10, #11, #12) are done
-- [ ] Define the `Action`/`Effect` adapter interface (see the adapter-API decision) - locked
-      ([ADR-0006](docs/adr/0006-adapter-interface.md)), not yet implemented in `ephor/`
+- [x] Define the `Action`/`Effect` adapter interface (see the adapter-API decision) - locked
+      ([ADR-0006](docs/adr/0006-adapter-interface.md)) and implemented
+      ([ADR-0012](docs/adr/0012-actions-and-effects.md))
 - [ ] Ship an in-memory mock adapter + a 20-line propose→approve→execute→audit example - the
-      in-memory stores exist per-module (audit/approvals/outbox); a single end-to-end example
-      wiring them together through a mock Adapter is the remaining piece
+      in-memory stores and `MockAdapter` exist per-module (audit/approvals/outbox/effects/
+      actions); a single end-to-end example wiring them together is the remaining piece (#14)
 - [x] Port the existing test suite; keep exactly-once and audit gates green - audit's, approvals'
       and outbox's suites are ported (`ephor/tests/`, including the ADR-0005 acceptance test);
       backend's 423 tests confirmed still green throughout
