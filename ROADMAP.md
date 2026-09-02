@@ -56,16 +56,16 @@ The support-ops app that AgentOps is today becomes the second example on the cor
 - [x] Define the `Action`/`Effect` adapter interface (see the adapter-API decision) - locked
       ([ADR-0006](docs/adr/0006-adapter-interface.md)) and implemented
       ([ADR-0012](docs/adr/0012-actions-and-effects.md))
-- [ ] Ship an in-memory mock adapter + a 20-line propose→approve→execute→audit example - the
-      in-memory stores and `MockAdapter` exist per-module (audit/approvals/outbox/effects/
-      actions); a single end-to-end example wiring them together is the remaining piece (#14)
+- [x] Ship an in-memory mock adapter + a 20-line propose→approve→execute→audit example -
+      `stripe-recovery/src/stripe_recovery/demo.py` (#14) wires audit/approvals/outbox/effects/
+      actions together end to end, against a fake Stripe client, zero setup
 - [x] Port the existing test suite; keep exactly-once and audit gates green - audit's, approvals'
       and outbox's suites are ported (`ephor/tests/`, including the ADR-0005 acceptance test);
       backend's 423 tests confirmed still green throughout
 
 **Done when:** a stranger clones the repo, runs one command, and a short script proves the
 propose→approve→execute→audit loop with the mock adapter — no external service, no signup.
-Tag `v0.1`.
+Tag `v0.1`. **Met** - `cd stripe-recovery && uv run python -m stripe_recovery.demo`.
 
 ## Phase 2 — v0.2: Runnable in 2 minutes (Track A)
 
@@ -78,12 +78,19 @@ straight from the README, with nothing to install first. Tag `v0.2`.
 
 ## Phase 3 — v0.3: Stripe flagship (Track B)
 
-- [ ] Detector scans failed charges / churned subscriptions for recoverable revenue
-- [ ] Emits concrete proposals (retry charge, send dunning, fix subscription state)
-- [ ] Executes approved proposals through the core against Stripe test mode, fully audited
-- [ ] Headline demo: "found $X/mo → you approved $Y → here's the audit trail"
+- [x] Detector scans failed charges for recoverable revenue - `stripe-recovery/` (#14), against a
+      fake in-memory Stripe client (`FakeStripeClient`); churned subscriptions are out of v1's
+      scope ([ADR-0011](docs/adr/0011-v1-stripe-action-set.md))
+- [x] Emits concrete proposals - retry charge only, per ADR-0011 (dunning and subscription-state
+      fixes are deferred to v1.1/v1.2, not built)
+- [x] Executes approved proposals through the core, fully audited - against the fake client;
+      **against real Stripe test mode is not yet built** (deliberately scoped out, see #14's PR)
+- [x] Headline demo: "found $X/mo → you approved $Y → here's the audit trail" -
+      `stripe_recovery.demo` prints exactly this shape, on fake data
 
-**Done when:** the flagship demo runs end to end on test data. Tag `v0.3`.
+**Done when:** the flagship demo runs end to end on test data. Tag `v0.3`. **Partially met**: runs
+end to end deterministically today; swapping `FakeStripeClient` for a real Stripe-SDK-backed
+`StripeClient` (same interface, see `stripe_recovery/client.py`) is the natural next increment.
 
 ## Phase 4 — v1.0: Launch
 
