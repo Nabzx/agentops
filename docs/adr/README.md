@@ -25,3 +25,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0012](0012-actions-and-effects.md) | Implement the remaining core primitives: Action/Proposal and the Adapter interface | Accepted |
 | [0013](0013-real-stripe-test-mode-client.md) | A real Stripe test-mode client: API mapping, credentials, testing | Accepted |
 | [0014](0014-product-direction-recovery-wedge-and-platform-thesis.md) | Product direction: a commission-based recovery wedge, with the safety core as the platform thesis | Accepted |
+| [0015](0015-chaos-test-the-exactly-once-guarantee.md) | Chaos-test the exactly-once guarantee, don't just assert it at three points | Accepted |

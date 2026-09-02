@@ -62,7 +62,9 @@ Named after the Spartan magistrates whose job was to check the king's power befo
 - **Propose**: an agent puts forward one concrete action. It never executes on its own.
 - **Approve**: a human sees a frozen, hashed snapshot of exactly what will happen, and decides.
 - **Execute**: once approved, the action runs through a durable outbox, **exactly once**, proven
-  by a crash-recovery test, not just claimed.
+  by a crash-recovery test and a 50,000-trial randomised chaos sweep
+  ([ADR-0015](docs/adr/0015-chaos-test-the-exactly-once-guarantee.md),
+  [report](docs/chaos-report.md)), not just claimed.
 - **Audit**: every step writes to an append-only, hash-chained log. Tampering breaks the chain
   detectably; nothing can be quietly edited or deleted.
 
