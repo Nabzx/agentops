@@ -9,6 +9,7 @@ ROADMAP calls "a short script [that] proves the loop with the mock adapter."
 from __future__ import annotations
 
 import asyncio
+import os
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -18,16 +19,31 @@ from ephor.audit import InMemoryAuditStore
 from ephor.outbox import InMemoryOutboxStore
 
 from stripe_recovery.adapter import StripeAdapter
-from stripe_recovery.client import FailedCharge, FakeStripeClient
+from stripe_recovery.client import (
+    FailedCharge,
+    FakeStripeClient,
+    StripeClient,
+    StripeRecoverySettings,
+    StripeTestModeClient,
+)
 from stripe_recovery.detector import scan_for_recoverable_charges
 
 REQUESTER_ID = uuid.uuid4()
 SUPERVISOR_ID = uuid.uuid4()
 
 
-async def main() -> None:
-    now = datetime.now(UTC)
-    client = FakeStripeClient(
+def _build_client() -> StripeClient:
+    """Real Stripe test mode when STRIPE_RECOVERY_SECRET_KEY is set (see ADR-0013);
+    the zero-setup fake, seeded with a demo-shaped pair of charges, otherwise.
+    """
+    if os.environ.get("STRIPE_RECOVERY_SECRET_KEY"):
+        print("Using a real Stripe test-mode account (secret key set via env).\n")
+        # model_validate({}) rather than StripeRecoverySettings() - the field has no
+        # default (it always comes from the environment, per ADR-0003), so mypy can't
+        # see that a zero-arg call is safe; model_validate({}) still runs the env
+        # source, just without a call signature mypy checks per-field.
+        return StripeTestModeClient(StripeRecoverySettings.model_validate({}))
+    return FakeStripeClient(
         [
             FailedCharge(
                 id="ch_soft_decline",
@@ -43,6 +59,11 @@ async def main() -> None:
             ),
         ]
     )
+
+
+async def main() -> None:
+    now = datetime.now(UTC)
+    client = _build_client()
     adapter = StripeAdapter(client)
     proposals = InMemoryProposalStore()
     approvals = InMemoryApprovalStore()
@@ -66,6 +87,14 @@ async def main() -> None:
             f"£{amount_pence / 100:.2f} "
             f"({c.approval.snapshot_json['decline_code']})"
         )
+
+    if not candidates:
+        print(
+            "\nNo recoverable charges found - nothing to approve or execute. "
+            "This is expected on a fresh Stripe test-mode account with no failed "
+            "PaymentIntents yet; create one and re-run to see the rest of the loop."
+        )
+        return
 
     candidate = candidates[0]
     approval = candidate.approval
