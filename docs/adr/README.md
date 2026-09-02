@@ -21,3 +21,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0008](0008-generic-snapshot-shape.md) | A generic Snapshot shape for the approval gate and outbox | Accepted |
 | [0009](0009-approval-gate-extraction.md) | Extract the approval gate: state machine, snapshot hash, self-approval rule | Accepted |
 | [0010](0010-outbox-worker-extraction.md) | Extract the outbox/worker: claim/lease mechanics, retry, the exactly-once proof | Accepted |
+| [0011](0011-v1-stripe-action-set.md) | v1 Stripe action set: retry a soft-declined charge, and only that | Accepted |
