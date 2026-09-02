@@ -28,7 +28,9 @@ services:
       start_period: 10s
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     env_file: .env
     # DATABASE_URL in .env points at the `db` service hostname on the compose network.
     depends_on:
@@ -40,6 +42,9 @@ services:
       # Bind mount source for hot reload. The dependency virtualenv lives at /opt/venv
       # (outside /app), so it is not shadowed by this mount.
       - ./backend:/app
+      # ephor (the extracted safe-action core) - a local editable dependency; see
+      # backend/pyproject.toml's [tool.uv.sources] and the Dockerfile.
+      - ./ephor:/ephor
       # Synthetic policy/data files live at the repo root; make them available for
       # seeding (read-only).
       - ./data:/app/data:ro
@@ -61,7 +66,9 @@ services:
 
   worker:
     # The durable outbox worker. Reuses the backend image; no HTTP server, no port.
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     env_file: .env
     depends_on:
       db:
@@ -71,6 +78,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - ./ephor:/ephor
       - ./data:/app/data:ro
       - ./evaluations:/app/evaluations
     environment:

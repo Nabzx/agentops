@@ -18,6 +18,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
+from ephor.approvals import SelfDecisionError, assert_not_self_decision
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.actions.enums import PROPOSED_TO_EXECUTION, ExecutionActionType
@@ -354,11 +355,9 @@ class ApprovalService:
                 "only a supervisor may approve",
             )
         # A requester can never approve their own proposal, whatever their role.
-        if actor.user_id == approval.requester_user_id:
-            raise ApprovalError(
-                ApprovalErrorCode.APPROVAL_SELF_DECISION_FORBIDDEN,
-                "the requester may not approve their own request",
-            )
+        self._require_not_self_decision(
+            approval, actor, "the requester may not approve their own request"
+        )
         self._verify_snapshot(approval)
         run = await self._load_v2_run_awaiting_approval(approval.workflow_run_id)
 
@@ -482,11 +481,9 @@ class ApprovalService:
                 ApprovalErrorCode.APPROVAL_ROLE_FORBIDDEN,
                 "only a supervisor may reject",
             )
-        if actor.user_id == approval.requester_user_id:
-            raise ApprovalError(
-                ApprovalErrorCode.APPROVAL_SELF_DECISION_FORBIDDEN,
-                "the requester may not decide their own request",
-            )
+        self._require_not_self_decision(
+            approval, actor, "the requester may not decide their own request"
+        )
         run = await self._load_v2_run_awaiting_approval(approval.workflow_run_id)
 
         now = self._now()
@@ -639,11 +636,9 @@ class ApprovalService:
                 ApprovalErrorCode.APPROVAL_ROLE_FORBIDDEN,
                 "only a supervisor may authorise a retry",
             )
-        if actor.user_id == approval.requester_user_id:
-            raise ApprovalError(
-                ApprovalErrorCode.APPROVAL_SELF_DECISION_FORBIDDEN,
-                "the requester may not authorise their own retry",
-            )
+        self._require_not_self_decision(
+            approval, actor, "the requester may not authorise their own retry"
+        )
         if approval.status != ApprovalStatus.EXECUTION_FAILED:
             raise ApprovalError(
                 ApprovalErrorCode.APPROVAL_NOT_PENDING,
@@ -736,6 +731,20 @@ class ApprovalService:
                 ApprovalErrorCode.APPROVAL_ROLE_FORBIDDEN,
                 f"missing permission: {permission.value}",
             )
+
+    @staticmethod
+    def _require_not_self_decision(
+        approval: ApprovalRequest, actor: AuthenticatedUser, message: str
+    ) -> None:
+        """The requester may never decide their own request (core rule, ADR-0009)."""
+        try:
+            assert_not_self_decision(
+                requester_id=approval.requester_user_id, actor_id=actor.user_id
+            )
+        except SelfDecisionError as exc:
+            raise ApprovalError(
+                ApprovalErrorCode.APPROVAL_SELF_DECISION_FORBIDDEN, message
+            ) from exc
 
     def _require_pending(self, approval: ApprovalRequest) -> None:
         if approval.status == ApprovalStatus.PENDING:

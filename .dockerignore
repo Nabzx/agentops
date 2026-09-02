@@ -1,0 +1,15 @@
+# Applies to the repo-root build context used by backend/worker (see docker-compose.yml).
+# frontend's own build keeps using frontend/.dockerignore for its own (./frontend) context.
+
+.git
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.env
+**/node_modules
+frontend/.next
+docs
+evaluations/reports
