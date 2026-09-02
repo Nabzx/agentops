@@ -82,9 +82,11 @@ live-editing experience the existing `./backend:/app` mount gives), and a root `
   end to end (one hard-gate scenario, `s6_regression`, failed once and passed on an unmodified
   rerun - a pre-existing flake in the eval suite, same shape as `refund_audit_and_pii` found
   during #10, not chased here either).
-- **Follow-up (#36, not part of this PR):** wire `ApprovalService` to actually build and verify
-  Snapshots through `ephor.approvals`'s generic functions instead of `snapshot.py`'s typed-model
-  versions - same shape as #32 for audit.
+- **Follow-up, done (#36):** `app/approvals/snapshot.py`'s `compute_snapshot_hash`/
+  `verify_snapshot` now delegate the canonicalise-and-hash mechanism to `ephor.approvals`,
+  keeping only the domain-specific "which fields are hash-relevant" decision locally. The hash
+  algorithm is byte-for-byte identical (confirmed by all 423 tests, including tamper-detection
+  ones, still passing unchanged) - existing stored hashes remain valid.
 - Sets the template for #12 (outbox/worker): expect the same split - a generic exactly-once state
   machine and attempt ledger extract cleanly, while AgentOps-specific payload construction stays
   in the app layer.
