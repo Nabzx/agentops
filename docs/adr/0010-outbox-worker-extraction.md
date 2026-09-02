@@ -80,7 +80,15 @@ exactly-once holds - #12 is where it gets built.
   ADR-0005 acceptance test - 16 new tests, all passing.
 - `backend`'s behaviour is unchanged: all 423 backend tests pass, `ruff`/`mypy` clean, the Alembic
   migration still applies cleanly, `make verify-all` passes end to end.
-- **Follow-up (#38, not part of this PR):** wire `OutboxRepository` to actually implement
-  `ephor.outbox.OutboxStore` - same shape as #32 and #36.
+- **Follow-up, done (#38):** `backend/app/outbox/store.py`'s `PostgresOutboxStore` wraps both
+  outbox repositories and genuinely implements `ephor.outbox.OutboxStore` (`proposal_id` maps to
+  `proposed_action_id` - the closest conceptual match). `create()` is deliberately **not**
+  implemented: `OutboxJob.workflow_run_id`/`approval_request_id` are NOT NULL foreign keys with no
+  equivalent in the generic interface, and closing that gap needs the schema redesign this ADR
+  already deferred, not a translation wrapper - job creation stays in
+  `ApprovalService._create_outbox_job()`. Every method `OutboxProcessor`/`OutboxWorker` would
+  actually use is real and tested against the live Postgres test database (`tests/
+  test_outbox_store.py`), including a genuine mypy-checked `store: OutboxStore =
+  PostgresOutboxStore(session)` assignment - not just a static, unexercised proof.
 - Track A's three extraction issues (#10, #11, #12) are now all done. The next fork is #4 (v1
   Stripe action set, Track B) - a grilling conversation, not an extraction.
