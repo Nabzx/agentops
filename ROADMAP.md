@@ -101,15 +101,13 @@ unused seats, refund leakage, support-ops. Each new detector is a plugin/PR — 
 
 ## Open decisions (Wayfinder map)
 
-Locked before the phases that depend on them:
-
-- **v1 Stripe action set** — which recovery actions ship first (Track B only, doesn't block core
-  extraction). `wayfinder:grilling`
+None left blocking either track.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
 **adapter interface** ([ADR-0006](docs/adr/0006-adapter-interface.md)),
-**adapter credential model** ([ADR-0003](docs/adr/0003-adapter-scoped-sandbox-first-credentials.md))
-and **monetisation seam / core licence** ([ADR-0002](docs/adr/0002-keep-monetisation-seams-open.md),
-core is Apache-2.0). **Track A (core extraction) is fully unblocked** — #10, #11, #12 are all
-`ready-for-agent`.
+**adapter credential model** ([ADR-0003](docs/adr/0003-adapter-scoped-sandbox-first-credentials.md)),
+**monetisation seam / core licence** ([ADR-0002](docs/adr/0002-keep-monetisation-seams-open.md),
+core is Apache-2.0), and **v1 Stripe action set** — retry a soft-declined charge, and only that
+([ADR-0011](docs/adr/0011-v1-stripe-action-set.md)). **Track A (core extraction) is done** — #10,
+#11, #12 are all closed. **Track B is unblocked** — #14 (the Stripe flagship skeleton) is next.
