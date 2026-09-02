@@ -69,12 +69,16 @@ Tag `v0.1`. **Met** - `cd stripe-recovery && uv run python -m stripe_recovery.de
 
 ## Phase 2 — v0.2: Runnable in 2 minutes (Track A)
 
-- [ ] One-command quickstart (`docker compose up` / equivalent) on a sample dataset
+- [x] One-command quickstart on a sample dataset - `cd stripe-recovery && uv sync && uv run
+      python -m stripe_recovery.demo` (#13); the Docker-based `make up && make demo` full-dashboard
+      path stays as a secondary option
 - [ ] One **real** integration adapter on sandbox credentials (Stripe test mode)
-- [ ] README first screen: logo, one-liner, a **GIF of the loop**, 3-line quickstart
+- [x] README first screen: one-liner, a **GIF of the loop**, 3-line quickstart (#13)
 
 **Done when:** a stranger clones it and sees a real approved action execute in under 2 minutes,
-straight from the README, with nothing to install first. Tag `v0.2`.
+straight from the README, with nothing to install first. Tag `v0.2`. **Partially met**: the
+quickstart and GIF are live and genuinely under two minutes; the sandbox-Stripe adapter is the one
+box left, same follow-up noted in Phase 3.
 
 ## Phase 3 — v0.3: Stripe flagship (Track B)
 

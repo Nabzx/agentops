@@ -15,6 +15,34 @@ An agent proposes, a human approves, the action runs exactly once, and every ste
 The goal: the trust layer behind the next generation of agents that audit and run real
 businesses, starting with revenue recovery on Stripe.
 
+![Propose, approve, execute, audit](assets/demo.gif)
+
+*A charge that failed with a soft decline, proposed, approved, retried exactly once, and
+audited - end to end in the terminal, in seconds. No Stripe account, no network, no signup.*
+
+## Quickstart
+
+```bash
+git clone https://github.com/Nabzx/ephor.git
+cd ephor/stripe-recovery
+uv sync
+uv run python -m stripe_recovery.demo
+```
+
+That's the whole loop, deterministic and offline, in under two minutes on a fresh clone. See
+[stripe-recovery/README.md](stripe-recovery/README.md) for what it's actually doing.
+
+Want the full dashboard - sign-in, an approval queue, the audit trail, ticket journeys - against
+the reference app this core was extracted from?
+
+```bash
+make up && make seed      # stack + synthetic data
+make demo                 # approval -> execution, exactly once, in your terminal
+```
+
+Then open <http://localhost:3000>. Everything here is deterministic, offline and simulated too:
+no paid API, no external network, nothing real is ever contacted.
+
 | Approval detail + decision | Hash-chained audit log |
 | --- | --- |
 | ![Approval detail](docs/screenshots/04-approval-detail.png) | ![Audit log](docs/screenshots/07-audit.png) |
@@ -38,25 +66,15 @@ Named after the Spartan magistrates whose job was to check the king's power befo
 - **Audit**: every step writes to an append-only, hash-chained log. Tampering breaks the chain
   detectably; nothing can be quietly edited or deleted.
 
-## Quickstart
-
-```bash
-git clone https://github.com/Nabzx/ephor.git
-cd ephor
-make up && make seed      # stack + synthetic data
-make demo                 # approval -> execution, exactly once, in your terminal
-```
-
-Then open the dashboard at <http://localhost:3000>. Everything is deterministic, offline and
-simulated: no paid API, no external network, nothing real is ever contacted.
-
 ## Status
 
-Early. The audit layer is extracted, tested, and reusable as its own package
-(`ephor/`, [ADR-0007](docs/adr/0007-audit-store-interface.md)); the approval gate and durable
-outbox are being extracted next. The reference app in this repo, an AI support-ops platform,
-already runs the full loop end to end today. Ephor's job is making that loop reusable for any
-agent, starting with a Stripe revenue-recovery detector next.
+Early. The core (`ephor/`) - audit, the approval gate, the outbox/worker, and the Action/Adapter
+primitives - is extracted, tested, and wired for real into the reference app
+([ADR-0007](docs/adr/0007-audit-store-interface.md),
+[0009](docs/adr/0009-approval-gate-extraction.md),
+[0010](docs/adr/0010-outbox-worker-extraction.md)). `stripe-recovery/` is a working flagship
+skeleton: it scans, proposes, approves, executes and audits a real charge retry end to end -
+against a fake Stripe client today, a real Stripe-SDK one is the natural next step.
 
 ## Contributing
 
