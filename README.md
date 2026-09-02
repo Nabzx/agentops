@@ -77,7 +77,10 @@ primitives - is extracted, tested, and wired for real into the reference app
 [0010](docs/adr/0010-outbox-worker-extraction.md)). `stripe-recovery/` is a working flagship: it
 scans, proposes, approves, executes and audits a real charge retry end to end, against a fake
 Stripe client by default, or a real Stripe test-mode account one environment variable away
-([ADR-0013](docs/adr/0013-real-stripe-test-mode-client.md)).
+([ADR-0013](docs/adr/0013-real-stripe-test-mode-client.md)). A second detector,
+`wallet-guard/`, revokes dangerous unlimited token approvals through the same loop - proving the
+core generalises past one Adapter shape, since it earns exactly-once through nonce discipline
+instead of a payments-provider header ([ADR-0016](docs/adr/0016-wallet-guard-approval-revocation.md)).
 
 ## Contributing
 

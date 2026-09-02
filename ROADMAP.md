@@ -124,15 +124,19 @@ detector - is the thing other agent builders would want, sold as infrastructure 
 extraction was always aimed at proving out; it's a "grow into," not a parallel effort to start
 alongside Phase 4.
 
-**Shelved, not rejected** (ADR-0014): a crypto/DeFi treasury-operations Adapter (irreversibility
-makes the safety story land even harder than Stripe does, but needs a wallet integration built
-from nothing) and AI-governance/compliance tooling sold to a risk buyer at regulated enterprises
-(a real fit for the audit chain and approval gate, but too slow a sales cycle for a solo,
-pre-revenue build). Both stay real options once the wedge has proven the engine on real money.
+**Shelved as a *business* direction, not rejected** (ADR-0014): pursuing crypto/DeFi treasury
+operations as the near-term commercial bet, and AI-governance/compliance tooling sold to a risk
+buyer at regulated enterprises (a real fit for the audit chain and approval gate, but too slow a
+sales cycle for a solo, pre-revenue build). Both stay real options once the wedge has proven the
+engine on real money.
 
-More detectors on the same core (cloud-cost waste, unused seats, support-ops) remain the natural
-long-tail once the platform thesis is being pursued for real - each one a plugin/PR, the same
-shape `stripe-recovery` already validated once.
+**A second detector is built, as engineering proof rather than a business bet**
+([ADR-0016](docs/adr/0016-wallet-guard-approval-revocation.md)): `wallet-guard/` scans a wallet
+for unlimited token approvals and proposes revoking them - the same propose-approve-execute-audit
+shape as `stripe-recovery`, but with exactly-once earned through nonce discipline instead of a
+payments-provider header, proving the core generalises past one Adapter shape. Cloud-cost waste,
+unused seats and support-ops remain the natural long-tail once the platform thesis is being
+pursued for real - each one a plugin/PR, the same shape now validated twice.
 
 ---
 
