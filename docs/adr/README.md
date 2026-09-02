@@ -23,3 +23,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0010](0010-outbox-worker-extraction.md) | Extract the outbox/worker: claim/lease mechanics, retry, the exactly-once proof | Accepted |
 | [0011](0011-v1-stripe-action-set.md) | v1 Stripe action set: retry a soft-declined charge, and only that | Accepted |
 | [0012](0012-actions-and-effects.md) | Implement the remaining core primitives: Action/Proposal and the Adapter interface | Accepted |
+| [0013](0013-real-stripe-test-mode-client.md) | A real Stripe test-mode client: API mapping, credentials, testing | Accepted |
