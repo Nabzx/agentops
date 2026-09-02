@@ -3,6 +3,9 @@
 # lives OUTSIDE the app directory, so a bind-mounted ./backend does not shadow it and
 # hot reload works. Runtime deps + dev tooling are both installed so tests and linters
 # can run inside the container.
+#
+# Build context is the repo root (not ./backend) so ephor is reachable - see
+# docker-compose.yml's `build.context`/`build.dockerfile`.
 
 FROM python:3.12-slim AS base
 
@@ -18,14 +21,21 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# ephor (the extracted safe-action core, see ADR-0007/0009) is a local path dependency
+# - see backend/pyproject.toml's [tool.uv.sources]. It resolves relative to this
+# WORKDIR as ../ephor, i.e. /ephor, both at build time (uv sync) and at runtime (the
+# editable install imports from it). The build context is the repo root so this path
+# is reachable; see docker-compose.yml.
+COPY ephor /ephor
+
 # Install dependencies first for better layer caching. Only the lock + manifest are
 # needed; project code is not installed (package = false).
-COPY pyproject.toml uv.lock ./
+COPY backend/pyproject.toml backend/uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project
 
 # Application source (overlaid by a bind mount in development).
-COPY . .
+COPY backend/. .
 
 EXPOSE 8000
 

@@ -19,3 +19,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0006](0006-adapter-interface.md) | The Action/Effect Adapter interface | Accepted |
 | [0007](0007-audit-store-interface.md) | Extract the audit module: an AuditStore interface | Accepted |
 | [0008](0008-generic-snapshot-shape.md) | A generic Snapshot shape for the approval gate and outbox | Accepted |
+| [0009](0009-approval-gate-extraction.md) | Extract the approval gate: state machine, snapshot hash, self-approval rule | Accepted |

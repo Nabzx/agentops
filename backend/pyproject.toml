@@ -21,7 +21,12 @@ dependencies = [
     # LangGraph demo (portfolio) — parallel to the production workflow runner, not a
     # replacement. See docs/workflow-graph-demo.md.
     "langgraph>=1.2,<2",
+    "ephor",
 ]
+
+[tool.uv.sources]
+# The extracted safe-action core, developed in-place in this repo. See ADR-0007/0009.
+ephor = { path = "../ephor", editable = true }
 
 [dependency-groups]
 dev = [
