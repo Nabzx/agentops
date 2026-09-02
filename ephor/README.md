@@ -12,9 +12,9 @@ its design locks (see [ROADMAP.md](../ROADMAP.md) Phase 1):
 
 | Module | Status | Vocabulary |
 | --- | --- | --- |
-| `actions.py` | skeleton | `Action`, `Proposal` |
+| `actions.py` | **implemented** ([ADR-0012](../docs/adr/0012-actions-and-effects.md)) | `Action`, `Proposal` |
 | `approvals.py` | **implemented** ([ADR-0009](../docs/adr/0009-approval-gate-extraction.md)) | `Approval request`, `Snapshot`, `Decision` |
-| `effects.py` | interface locked ([ADR-0006](../docs/adr/0006-adapter-interface.md)), not yet implemented | `Effect`, `Adapter` |
+| `effects.py` | **implemented** ([ADR-0012](../docs/adr/0012-actions-and-effects.md)) | `Effect`, `Adapter` |
 | `outbox.py` | **implemented** ([ADR-0010](../docs/adr/0010-outbox-worker-extraction.md)) | `Outbox job`, `Worker`, `Idempotency key`, `Exactly-once` |
 | `audit.py` | **implemented** ([ADR-0007](../docs/adr/0007-audit-store-interface.md)) | `Audit entry`, `Audit chain`, `Correlation id` |
 | `permissions.py` | skeleton | `Permission`, `Requester`, `Approver` |
