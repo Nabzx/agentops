@@ -6,15 +6,24 @@ execution) must match. The hash is computed over the action-relevant fields only
 text-only change to volatile metadata never changes it, but any action-relevant change
 (amount, order, action type, rule result, citations, versions, idempotency key,
 requester, workflow version) does.
+
+Deciding *which* fields are hash-relevant for this app's own Snapshot shape (excluding
+volatile ones like ``snapshot_created_at``) is domain-specific business logic that stays
+here - the core has no business knowing about draft responses or policy citations. The
+actual canonicalise-and-hash *mechanism* is shared with ``ephor.approvals`` since #36,
+rather than reimplemented, per ADR-0008/0009.
 """
 
 from __future__ import annotations
 
 import hashlib
-import json
 import uuid
 from datetime import datetime
+from typing import Any
 
+from ephor.approvals import SnapshotError
+from ephor.approvals import compute_snapshot_hash as _ephor_compute_snapshot_hash
+from ephor.approvals import verify_snapshot as _ephor_verify_snapshot
 from pydantic import BaseModel, ConfigDict, Field
 
 SNAPSHOT_SCHEMA_VERSION = "approval-snapshot-v1"
@@ -22,9 +31,17 @@ SNAPSHOT_SCHEMA_VERSION = "approval-snapshot-v1"
 # Volatile metadata excluded from the integrity hash (assigned after / around creation).
 _HASH_EXCLUDE = frozenset({"approval_request_id", "snapshot_created_at"})
 
-
-class SnapshotError(Exception):
-    """Raised when a stored approval snapshot fails hash verification."""
+# Re-exported so existing call sites (`from app.approvals.snapshot import
+# SnapshotError`) keep working unchanged - the definition's home is now ephor.approvals.
+__all__ = [
+    "SNAPSHOT_SCHEMA_VERSION",
+    "ApprovalSnapshot",
+    "SnapshotError",
+    "build_business_idempotency_key",
+    "compute_snapshot_hash",
+    "hash_text",
+    "verify_snapshot",
+]
 
 
 class ApprovalSnapshot(BaseModel):
@@ -61,17 +78,17 @@ class ApprovalSnapshot(BaseModel):
     requester_user_id: uuid.UUID
     snapshot_created_at: datetime
 
-    def canonical_json(self) -> str:
-        """Deterministic, sorted-key JSON of the hash-relevant fields."""
+    def hash_relevant_fields(self) -> dict[str, Any]:
+        """This app's own Snapshot content, minus the fields excluded from the hash."""
         data = self.model_dump(mode="json")
         for key in _HASH_EXCLUDE:
             data.pop(key, None)
-        return json.dumps(data, sort_keys=True, ensure_ascii=True)
+        return data
 
 
 def compute_snapshot_hash(snapshot: ApprovalSnapshot) -> str:
     """Deterministic SHA-256 over the snapshot's action-relevant fields."""
-    return hashlib.sha256(snapshot.canonical_json().encode("utf-8")).hexdigest()
+    return _ephor_compute_snapshot_hash(snapshot.hash_relevant_fields())
 
 
 def verify_snapshot(
@@ -82,8 +99,7 @@ def verify_snapshot(
         snapshot = ApprovalSnapshot.model_validate(snapshot_json)
     except ValueError as exc:
         raise SnapshotError("approval snapshot is structurally invalid") from exc
-    if compute_snapshot_hash(snapshot) != stored_hash:
-        raise SnapshotError("approval snapshot hash mismatch (tampered)")
+    _ephor_verify_snapshot(snapshot.hash_relevant_fields(), stored_hash)
     return snapshot
 
 
