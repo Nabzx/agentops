@@ -1,31 +1,15 @@
-"""Outbox job status enum (S6)."""
+"""Outbox job status enum (S6).
+
+Defined in ``ephor.outbox`` (the extracted core, see ADR-0010) and re-exported here so
+every existing import site in this app keeps working unchanged - only the definition's
+home moved. ``ephor.outbox.OutboxStatus`` also has a ``needs_manual_reconciliation``
+member (ADR-0005) that no AgentOps code path produces today - every handler here is
+fully in-process/simulated, so the crash-recovery gap that state exists for can't occur
+yet. It exists in the shared enum for when a real Adapter (Stripe) does.
+"""
 
 from __future__ import annotations
 
-from enum import StrEnum
+from ephor.outbox import CLAIMABLE_STATUSES, UNCLAIMABLE_STATUSES, OutboxStatus
 
-
-class OutboxStatus(StrEnum):
-    PENDING = "pending"
-    CLAIMED = "claimed"
-    PROCESSING = "processing"
-    SUCCEEDED = "succeeded"
-    RETRY_SCHEDULED = "retry_scheduled"
-    FAILED = "failed"
-    DEAD_LETTER = "dead_letter"
-    CANCELLED = "cancelled"
-
-
-# A job in one of these statuses is never claimed by a worker.
-UNCLAIMABLE_STATUSES: frozenset[OutboxStatus] = frozenset(
-    {
-        OutboxStatus.SUCCEEDED,
-        OutboxStatus.DEAD_LETTER,
-        OutboxStatus.CANCELLED,
-        OutboxStatus.FAILED,
-    }
-)
-
-CLAIMABLE_STATUSES: frozenset[OutboxStatus] = frozenset(
-    {OutboxStatus.PENDING, OutboxStatus.RETRY_SCHEDULED}
-)
+__all__ = ["CLAIMABLE_STATUSES", "UNCLAIMABLE_STATUSES", "OutboxStatus"]
