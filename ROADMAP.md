@@ -113,7 +113,8 @@ unused seats, refund leakage, support-ops. Each new detector is a plugin/PR — 
 
 ## Open decisions (Wayfinder map)
 
-None left blocking either track.
+One open: **#48** (research) - the concrete shape of a real, Stripe-test-mode-backed
+`StripeClient` to replace `FakeStripeClient`. Nothing else is blocking either track.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
@@ -122,4 +123,5 @@ Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-cor
 **monetisation seam / core licence** ([ADR-0002](docs/adr/0002-keep-monetisation-seams-open.md),
 core is Apache-2.0), and **v1 Stripe action set** — retry a soft-declined charge, and only that
 ([ADR-0011](docs/adr/0011-v1-stripe-action-set.md)). **Track A (core extraction) is done** — #10,
-#11, #12 are all closed. **Track B is unblocked** — #14 (the Stripe flagship skeleton) is next.
+#11, #12 are all closed and wired into AgentOps for real (#32, #36, #38). **Track B has a working
+flagship skeleton** — #14 is closed; #48 is what's left before it runs against real Stripe.
