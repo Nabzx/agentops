@@ -24,6 +24,21 @@ uv run python -m stripe_recovery.demo
 Walks through the whole loop on two fake charges - one retryable, one not - and prints the audit
 trail at the end.
 
+## Running it against a real Stripe test-mode account
+
+Optional, and never required. Copy `.env.example` to `.env`, fill in a real Stripe **test-mode**
+secret key (`sk_test_...`), and the same command scans your actual account instead:
+
+```bash
+cp .env.example .env   # then edit it
+uv run python -m stripe_recovery.demo
+```
+
+`StripeTestModeClient` (`src/stripe_recovery/client.py`) wraps the official Stripe SDK against
+the PaymentIntents API - see [ADR-0013](../docs/adr/0013-real-stripe-test-mode-client.md) for the
+API mapping, credential model and why nothing here ever runs a real network call in CI. A
+live-looking key (`sk_live_.../rk_live_...`) is refused outright, not silently accepted.
+
 ## Developing
 
 ```bash

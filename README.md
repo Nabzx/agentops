@@ -72,9 +72,10 @@ Early. The core (`ephor/`) - audit, the approval gate, the outbox/worker, and th
 primitives - is extracted, tested, and wired for real into the reference app
 ([ADR-0007](docs/adr/0007-audit-store-interface.md),
 [0009](docs/adr/0009-approval-gate-extraction.md),
-[0010](docs/adr/0010-outbox-worker-extraction.md)). `stripe-recovery/` is a working flagship
-skeleton: it scans, proposes, approves, executes and audits a real charge retry end to end -
-against a fake Stripe client today, a real Stripe-SDK one is the natural next step.
+[0010](docs/adr/0010-outbox-worker-extraction.md)). `stripe-recovery/` is a working flagship: it
+scans, proposes, approves, executes and audits a real charge retry end to end, against a fake
+Stripe client by default, or a real Stripe test-mode account one environment variable away
+([ADR-0013](docs/adr/0013-real-stripe-test-mode-client.md)).
 
 ## Contributing
 

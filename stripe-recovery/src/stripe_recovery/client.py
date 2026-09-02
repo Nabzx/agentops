@@ -2,8 +2,9 @@
 
 ``StripeClient`` is a small Protocol; ``FakeStripeClient`` is an in-memory stand-in
 seeded with fake charges, so this whole package runs with zero setup and no Stripe
-account. A real Stripe-SDK-backed implementation of the same Protocol is a distinct,
-later concern (see ADR-0011) - not built here.
+account - that stays the default everywhere in this repo. ``StripeTestModeClient`` wraps
+the official Stripe SDK against the same Protocol, per ADR-0013; it's only reached when
+a caller sets ``STRIPE_RECOVERY_SECRET_KEY`` and asks for it explicitly.
 """
 
 from __future__ import annotations
@@ -11,6 +12,10 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import dataclass
 from typing import Protocol
+
+import stripe
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Decline codes considered safe to retry, per ADR-0011. An allow-list, never a
 # deny-list: an unrecognised or future decline code is never treated as retryable.
@@ -78,3 +83,91 @@ class FakeStripeClient:
         self._charges[charge_id] = succeeded
         self._confirmed_keys[idempotency_key] = succeeded
         return succeeded
+
+
+class StripeRecoverySettings(BaseSettings):
+    """Where a real secret key comes from - env vars, per ADR-0003. Never construct
+    this with anything committed to the repo; ``.env`` is git-ignored, only
+    ``.env.example`` (with a placeholder) is checked in.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="STRIPE_RECOVERY_", extra="ignore")
+
+    secret_key: SecretStr
+
+    def looks_live(self) -> bool:
+        """Sandbox is enforced by the key's own prefix, never a separate flag
+        (ADR-0003) - a live-looking key is refused unless a caller explicitly opts in.
+        """
+        return self.secret_key.get_secret_value().startswith(("sk_live_", "rk_live_"))
+
+
+class StripeTestModeClient:
+    """Wraps the official Stripe SDK against the PaymentIntents API, per ADR-0013.
+
+    Stripe has no "list failed charges" endpoint, and the list side has to agree with
+    the execute side about which object it's talking about - so both read and write a
+    PaymentIntent, never the legacy Charge object. ``FailedCharge.id`` here is a
+    PaymentIntent id (``pi_...``), not a Charge id - opaque to everything above this
+    client, same as any other detector-defined identifier (ADR-0008).
+    """
+
+    def __init__(
+        self, settings: StripeRecoverySettings, *, allow_live: bool = False
+    ) -> None:
+        if settings.looks_live() and not allow_live:
+            raise ValueError(
+                "refusing to build a StripeTestModeClient with a live-looking secret "
+                "key (sk_live_/rk_live_); pass allow_live=True explicitly if that's "
+                "really intended - nothing in this repo ever does"
+            )
+        self._client = stripe.StripeClient(settings.secret_key.get_secret_value())
+
+    @staticmethod
+    def _customer_id(customer: str | stripe.Customer | None) -> str:
+        # `customer` is a plain id unless the caller asked Stripe to expand it into a
+        # full Customer object - this client never does, but the SDK's type covers both.
+        if isinstance(customer, str):
+            return customer
+        return customer.id if customer is not None else ""
+
+    async def list_failed_charges(self) -> list[FailedCharge]:
+        # No status filter exists on the list endpoint (checked against the SDK's own
+        # PaymentIntentListParams) - filtering on status and decline_code happens here,
+        # client-side, on every page.
+        found: list[FailedCharge] = []
+        page = await self._client.v1.payment_intents.list_async(params={"limit": 100})
+        async for intent in page.auto_paging_iter():
+            if intent.status != "requires_payment_method":
+                continue
+            error = intent.last_payment_error
+            if error is None or error.decline_code is None:
+                continue
+            found.append(
+                FailedCharge(
+                    id=intent.id,
+                    amount_pence=intent.amount,
+                    customer_id=self._customer_id(intent.customer),
+                    decline_code=error.decline_code,
+                    status="failed",
+                )
+            )
+        return found
+
+    async def confirm_payment_intent(
+        self, charge_id: str, *, idempotency_key: str
+    ) -> FailedCharge:
+        try:
+            intent = await self._client.v1.payment_intents.confirm_async(
+                charge_id, options={"idempotency_key": idempotency_key}
+            )
+        except stripe.InvalidRequestError as exc:
+            raise ChargeNotFoundError(f"no such charge {charge_id}") from exc
+        error = intent.last_payment_error
+        return FailedCharge(
+            id=intent.id,
+            amount_pence=intent.amount,
+            customer_id=self._customer_id(intent.customer),
+            decline_code=error.decline_code if error and error.decline_code else "",
+            status=intent.status,
+        )

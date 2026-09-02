@@ -72,13 +72,13 @@ Tag `v0.1`. **Met** - `cd stripe-recovery && uv run python -m stripe_recovery.de
 - [x] One-command quickstart on a sample dataset - `cd stripe-recovery && uv sync && uv run
       python -m stripe_recovery.demo` (#13); the Docker-based `make up && make demo` full-dashboard
       path stays as a secondary option
-- [ ] One **real** integration adapter on sandbox credentials (Stripe test mode)
+- [x] One **real** integration adapter on sandbox credentials (Stripe test mode) -
+      `StripeTestModeClient` (#51, [ADR-0013](docs/adr/0013-real-stripe-test-mode-client.md)),
+      an opt-in behind one env var; `FakeStripeClient` stays the zero-setup default
 - [x] README first screen: one-liner, a **GIF of the loop**, 3-line quickstart (#13)
 
 **Done when:** a stranger clones it and sees a real approved action execute in under 2 minutes,
-straight from the README, with nothing to install first. Tag `v0.2`. **Partially met**: the
-quickstart and GIF are live and genuinely under two minutes; the sandbox-Stripe adapter is the one
-box left, same follow-up noted in Phase 3.
+straight from the README, with nothing to install first. Tag `v0.2`. **Met.**
 
 ## Phase 3 — v0.3: Stripe flagship (Track B)
 
@@ -87,14 +87,12 @@ box left, same follow-up noted in Phase 3.
       scope ([ADR-0011](docs/adr/0011-v1-stripe-action-set.md))
 - [x] Emits concrete proposals - retry charge only, per ADR-0011 (dunning and subscription-state
       fixes are deferred to v1.1/v1.2, not built)
-- [x] Executes approved proposals through the core, fully audited - against the fake client;
-      **against real Stripe test mode is not yet built** (deliberately scoped out, see #14's PR)
+- [x] Executes approved proposals through the core, fully audited - against the fake client by
+      default; against a real Stripe test-mode account too, one env var away (#51)
 - [x] Headline demo: "found $X/mo → you approved $Y → here's the audit trail" -
-      `stripe_recovery.demo` prints exactly this shape, on fake data
+      `stripe_recovery.demo` prints exactly this shape, on fake data or real test-mode data
 
-**Done when:** the flagship demo runs end to end on test data. Tag `v0.3`. **Partially met**: runs
-end to end deterministically today; swapping `FakeStripeClient` for a real Stripe-SDK-backed
-`StripeClient` (same interface, see `stripe_recovery/client.py`) is the natural next increment.
+**Done when:** the flagship demo runs end to end on test data. Tag `v0.3`. **Met.**
 
 ## Phase 4 — v1.0: Launch
 
@@ -113,15 +111,17 @@ unused seats, refund leakage, support-ops. Each new detector is a plugin/PR — 
 
 ## Open decisions (Wayfinder map)
 
-One open: **#48** (research) - the concrete shape of a real, Stripe-test-mode-backed
-`StripeClient` to replace `FakeStripeClient`. Nothing else is blocking either track.
+None left blocking either track.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
 **adapter interface** ([ADR-0006](docs/adr/0006-adapter-interface.md)),
 **adapter credential model** ([ADR-0003](docs/adr/0003-adapter-scoped-sandbox-first-credentials.md)),
 **monetisation seam / core licence** ([ADR-0002](docs/adr/0002-keep-monetisation-seams-open.md),
-core is Apache-2.0), and **v1 Stripe action set** — retry a soft-declined charge, and only that
-([ADR-0011](docs/adr/0011-v1-stripe-action-set.md)). **Track A (core extraction) is done** — #10,
-#11, #12 are all closed and wired into AgentOps for real (#32, #36, #38). **Track B has a working
-flagship skeleton** — #14 is closed; #48 is what's left before it runs against real Stripe.
+core is Apache-2.0), **v1 Stripe action set** — retry a soft-declined charge, and only that
+([ADR-0011](docs/adr/0011-v1-stripe-action-set.md)), and **the real Stripe test-mode client's
+shape** ([ADR-0013](docs/adr/0013-real-stripe-test-mode-client.md)). **Track A (core extraction)
+is done** — #10, #11, #12 are all closed and wired into AgentOps for real (#32, #36, #38).
+**Track B is done too** — #14 (the flagship) and #51 (the real Stripe client) are both closed;
+`FakeStripeClient` stays the default, `StripeTestModeClient` is one env var away. Phase 4 (launch)
+is what's left.
