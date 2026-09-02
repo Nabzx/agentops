@@ -68,10 +68,11 @@ Postgres implementation is proven compatible with it, with one honestly-scoped g
   covers chain integrity, tamper detection (mutated entry, deleted entry), hash determinism, and
   `InMemoryAuditStore`'s query behaviour.
 - `backend`'s hash-chain logic is untouched behaviourally; all 423 backend tests still pass.
-- **Follow-up (new issue, not #10):** a `PostgresAuditStore` adapter in `backend/app/audit/` that
-  wraps `AuditRepository`, translating `AuditEvent` rows to an `AuditEntry`-conforming dataclass,
-  so `AuditService` can depend on `ephor.audit.AuditStore` as its actual type rather than the
-  concrete `AuditRepository`. Small and additive once picked up.
+- **Follow-up, done (#32):** `backend/app/audit/store.py`'s `PostgresAuditStore` wraps
+  `AuditRepository`, translating `AuditEvent` rows to an `AuditEntry`-conforming dataclass.
+  `AuditService` now depends on `ephor.audit.AuditStore` as its actual, mypy-verified type -
+  `self._store: AuditStore = PostgresAuditStore(...)` type-checks for real, closing the gap this
+  ADR left open. No behaviour change; all 423 backend tests still pass.
 - Sets the template question for #11/#12: what's genuinely generic (interface + hashing, here)
   versus what needs a real schema redesign first (their Snapshot problem) has to be answered
   per-module, not assumed.
