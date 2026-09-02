@@ -48,16 +48,19 @@ The support-ops app that AgentOps is today becomes the second example on the cor
 
 ## Phase 1 — v0.1: Extract the core (Track A)
 
-- [ ] Carve the safe-action layer into its own package (within this repo) with a public API -
-      audit ([ADR-0007](docs/adr/0007-audit-store-interface.md)) and the approval gate's generic
-      mechanism ([ADR-0009](docs/adr/0009-approval-gate-extraction.md)) are extracted and tested;
-      #12 (outbox/worker) is next, against the shape ADR-0008 already locked
+- [x] Carve the safe-action layer into its own package (within this repo) with a public API -
+      audit ([ADR-0007](docs/adr/0007-audit-store-interface.md)), the approval gate
+      ([ADR-0009](docs/adr/0009-approval-gate-extraction.md)) and the outbox/worker
+      ([ADR-0010](docs/adr/0010-outbox-worker-extraction.md)) are all extracted and tested -
+      Track A's three extraction issues (#10, #11, #12) are done
 - [ ] Define the `Action`/`Effect` adapter interface (see the adapter-API decision) - locked
       ([ADR-0006](docs/adr/0006-adapter-interface.md)), not yet implemented in `ephor/`
-- [ ] Ship an in-memory mock adapter + a 20-line propose→approve→execute→audit example
-- [ ] Port the existing test suite; keep exactly-once and audit gates green - audit's and
-      approvals' suites are ported (`ephor/tests/`); backend's 423 tests confirmed still green
-      throughout
+- [ ] Ship an in-memory mock adapter + a 20-line propose→approve→execute→audit example - the
+      in-memory stores exist per-module (audit/approvals/outbox); a single end-to-end example
+      wiring them together through a mock Adapter is the remaining piece
+- [x] Port the existing test suite; keep exactly-once and audit gates green - audit's, approvals'
+      and outbox's suites are ported (`ephor/tests/`, including the ADR-0005 acceptance test);
+      backend's 423 tests confirmed still green throughout
 
 **Done when:** a stranger clones the repo, runs one command, and a short script proves the
 propose→approve→execute→audit loop with the mock adapter — no external service, no signup.
