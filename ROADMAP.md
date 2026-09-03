@@ -134,15 +134,21 @@ engine on real money.
 ([ADR-0016](docs/adr/0016-wallet-guard-approval-revocation.md)): `wallet-guard/` scans a wallet
 for unlimited token approvals and proposes revoking them - the same propose-approve-execute-audit
 shape as `stripe-recovery`, but with exactly-once earned through nonce discipline instead of a
-payments-provider header, proving the core generalises past one Adapter shape. Cloud-cost waste,
-unused seats and support-ops remain the natural long-tail once the platform thesis is being
-pursued for real - each one a plugin/PR, the same shape now validated twice.
+payments-provider header, proving the core generalises past one Adapter shape.
+
+**Two research tickets are open, in progress:** #60 - a third detector (cloud-cost waste),
+scoping the narrowest safe first action the way ADR-0011/0013/0016 did for the first two; and
+#61 - what it would take to put a real LLM in the safety loop (proposing or critiquing an
+action), the one item left from the project's own "what would make this more impressive" list,
+and the first research to touch the paid-API line this repo has held at zero so far.
 
 ---
 
 ## Open decisions (Wayfinder map)
 
-None left blocking either track.
+Two open, neither blocking Phase 4: **#60** (research) - a third detector's v1 action set
+(cloud-cost waste), and **#61** (research) - what a real LLM in the safety loop would require,
+including the paid-API line it would be the first to cross.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
