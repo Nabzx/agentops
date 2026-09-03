@@ -50,6 +50,17 @@ async def test_revoke_approval_raises_for_an_unknown_id() -> None:
         await client.revoke_approval("nonexistent", idempotency_key="k1")
 
 
+async def test_get_revoked_is_none_before_any_revocation() -> None:
+    client = FakeChainClient([_approval()])
+    assert await client.get_revoked("key-1") is None
+
+
+async def test_get_revoked_returns_the_result_after_revocation() -> None:
+    client = FakeChainClient([_approval()])
+    revoked = await client.revoke_approval("appr_1", idempotency_key="key-1")
+    assert await client.get_revoked("key-1") == revoked
+
+
 async def test_two_distinct_keys_revoke_two_distinct_approvals_independently() -> None:
     """A fresh idempotency key must never resolve to another key's already-recorded
     outcome - each commits to its own nonce, revoking its own approval.
