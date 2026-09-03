@@ -1,6 +1,14 @@
 from ephor.effects import AdapterRegistry, MockAdapter, PermanentEffectError
 
 
+async def test_mock_adapter_check_completed_is_always_none() -> None:
+    """Nothing to save by tracking prior calls when execute() is trivially safe to
+    call again regardless - see ADR-0018.
+    """
+    adapter = MockAdapter()
+    assert await adapter.check_completed({"kind": "test"}, "key-1") is None
+
+
 async def test_mock_adapter_always_revalidates_true() -> None:
     adapter = MockAdapter()
     assert await adapter.revalidate({"kind": "test"}) is True

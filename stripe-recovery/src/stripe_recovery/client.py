@@ -53,6 +53,18 @@ class StripeClient(Protocol):
         """
         ...
 
+    async def get_confirmed(
+        self, charge_id: str, *, idempotency_key: str
+    ) -> FailedCharge | None:
+        """Has this idempotency key already confirmed this PaymentIntent? Honestly,
+        for a real Stripe-backed client, there's no cheaper answer than re-issuing the
+        same ``confirm`` call and relying on Stripe's own dedup to make it safe - see
+        ADR-0018 for why this still has to exist as its own method rather than being
+        folded into ``confirm_payment_intent``, and why a worker must only call this
+        on a retry, never a genuine first attempt.
+        """
+        ...
+
 
 class ChargeNotFoundError(Exception):
     """Raised when an operation targets a charge id that doesn't exist."""
@@ -83,6 +95,14 @@ class FakeStripeClient:
         self._charges[charge_id] = succeeded
         self._confirmed_keys[idempotency_key] = succeeded
         return succeeded
+
+    async def get_confirmed(
+        self, charge_id: str, *, idempotency_key: str
+    ) -> FailedCharge | None:
+        # Genuinely cheap here, unlike the real Stripe client - a dict lookup, not a
+        # network call. charge_id is accepted for interface parity with the real
+        # client, which needs it to safely re-issue confirm.
+        return self._confirmed_keys.get(idempotency_key)
 
 
 class StripeRecoverySettings(BaseSettings):
@@ -171,3 +191,17 @@ class StripeTestModeClient:
             decline_code=error.decline_code if error and error.decline_code else "",
             status=intent.status,
         )
+
+    async def get_confirmed(
+        self, charge_id: str, *, idempotency_key: str
+    ) -> FailedCharge | None:
+        # Honestly not cheaper than confirm_payment_intent - Stripe has no separate
+        # "look up by idempotency key" endpoint. Re-issuing confirm with the same key
+        # is safe (Stripe's own dedup returns the original result, not a new attempt)
+        # and is the only way to learn what that key actually did. See ADR-0018 -
+        # a worker must never call this on a genuine first attempt for exactly this
+        # reason: it's a real call, not a free read.
+        result = await self.confirm_payment_intent(
+            charge_id, idempotency_key=idempotency_key
+        )
+        return result if result.status == "succeeded" else None

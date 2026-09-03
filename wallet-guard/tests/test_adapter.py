@@ -26,6 +26,21 @@ def _action(approval_id: str = "appr_1") -> dict[str, str]:
     return {"approval_id": approval_id, "owner_address": OWNER}
 
 
+async def test_check_completed_is_none_before_any_execution() -> None:
+    adapter = WalletGuardAdapter(_client())
+    assert await adapter.check_completed(_action(), "key-1") is None
+
+
+async def test_check_completed_returns_the_effect_after_execution() -> None:
+    client = _client()
+    adapter = WalletGuardAdapter(client)
+    first = await adapter.execute(_action(), "key-1")
+    completed = await adapter.check_completed(_action(), "key-1")
+    assert completed is not None
+    assert completed.effect_id == first.effect_id
+    assert completed.raw == first.raw
+
+
 async def test_revalidate_true_for_a_still_active_approval() -> None:
     adapter = WalletGuardAdapter(_client())
     assert await adapter.revalidate(_action()) is True

@@ -7,11 +7,11 @@ randomised crash injection through the *real* integration: the actual
 ``ephor.outbox.InMemoryOutboxStore``'s real claim/attempt lifecycle - proving the
 whole wiring holds, not just the abstract contract each side promises to honour.
 
-This is exactly what found the gap ADR-0017 writes up: a naive revalidate-then-execute
-retry loop misreads "already succeeded" as "no longer needed" after a crash in the
-post-call-pre-commit window, because ``revalidate()`` alone can't tell those apart.
-The fix modelled here (``succeeded_effects``, checked before revalidate on every
-cycle) is the pattern - not yet a shared ephor primitive, see the ADR.
+This is exactly what found the gap ADR-0017 writes up, and now proves the real fix
+(ADR-0018): a worker checks ``store.list_attempts(job_id)`` before starting a new
+attempt - if a prior attempt already exists, ``adapter.check_completed`` is asked
+first, and only falls through to ``revalidate()``/``execute()`` if it says ``None``.
+On a genuine first attempt, ``check_completed`` is never called at all.
 
 Deterministic and reproducible, same discipline as the core's own harness: each
 trial is seeded from its own index.
@@ -65,21 +65,12 @@ async def _advance_one_cycle(
     store: InMemoryOutboxStore,
     adapter: WalletGuardAdapter,
     job_id: uuid.UUID,
-    succeeded_effects: dict[str, object],
     rng: random.Random,
     *,
     now: datetime,
     force_none: bool,
 ) -> tuple[bool, datetime]:
-    """Returns (is now terminal, clock time after this cycle).
-
-    ``succeeded_effects`` models the "idempotent success first" check ADR-0017 found
-    missing from a naive revalidate-then-execute loop: a real worker must know a
-    retried job's idempotency key already succeeded *before* calling revalidate again,
-    or revalidate correctly reporting "no longer needed" gets misread as "never
-    happened" - see the ADR for why this can't be answered from the outbox job's own
-    status alone in the crash window this test targets.
-    """
+    """Returns (is now terminal, clock time after this cycle)."""
     crash_at = CrashPoint.NONE if force_none else rng.choice(list(CrashPoint))
     worker_id = rng.choice(("worker-a", "worker-b"))
 
@@ -92,6 +83,11 @@ async def _advance_one_cycle(
     if not claimed:
         return False, now + timedelta(seconds=LEASE_SECONDS + 1)
     job = claimed[0]
+    action = dict(job.payload_json)
+
+    # ADR-0018: a prior attempt existing is the *only* signal that justifies asking
+    # check_completed at all - never on a genuine first attempt, see the ADR for why.
+    prior_attempts = await store.list_attempts(job_id)
 
     attempt = await store.start_attempt(
         job_id=job_id,
@@ -101,26 +97,24 @@ async def _advance_one_cycle(
         now=now,
     )
 
-    if job.idempotency_key in succeeded_effects:
-        # A prior attempt's execute() already landed for real - a crash cost us the
-        # outbox commit, not the effect. Finish the bookkeeping; don't ask revalidate
-        # a question it can't answer correctly here (ADR-0017).
-        await store.mark_succeeded(job_id, now=now)
-        await store.finish_attempt(attempt.id, result_status="succeeded", now=now)
-        return True, now
+    if prior_attempts:
+        completed = await adapter.check_completed(action, job.idempotency_key)
+        if completed is not None:
+            await store.mark_succeeded(job_id, now=now)
+            await store.finish_attempt(attempt.id, result_status="succeeded", now=now)
+            return True, now
 
     if crash_at == CrashPoint.AFTER_CLAIM_BEFORE_EXECUTE:
         return False, now + timedelta(seconds=LEASE_SECONDS + 1)
 
-    action = dict(job.payload_json)
     if not await adapter.revalidate(action):
         raise AssertionError(f"unexpectedly stale action for job {job_id}")
-    effect = await adapter.execute(action, job.idempotency_key)
-    succeeded_effects[job.idempotency_key] = effect.raw
+    await adapter.execute(action, job.idempotency_key)
 
     if crash_at == CrashPoint.AFTER_EXECUTE_BEFORE_COMMIT:
-        # The real revoke already landed; succeeded_effects now knows it, even though
-        # the outbox job itself doesn't yet - that's the whole point of this record.
+        # The real revoke already landed; check_completed will find it on the next
+        # cycle via get_revoked - the outbox job itself doesn't know yet, which is
+        # the whole point of asking the adapter rather than trusting job status.
         return False, now + timedelta(seconds=LEASE_SECONDS + 1)
 
     await store.mark_succeeded(job_id, now=now)
@@ -155,7 +149,6 @@ async def run_trial(seed: int) -> TrialResult:
         approval_ids.append(approval_id)
 
     now = NOW
-    succeeded_effects: dict[str, object] = {}
     for approval_id in approval_ids:
         job = await store.create(
             proposal_id=uuid.uuid4(),
@@ -171,7 +164,6 @@ async def run_trial(seed: int) -> TrialResult:
                 store,
                 adapter,
                 job.id,
-                succeeded_effects,
                 rng,
                 now=now,
                 force_none=cycle == MAX_CYCLES - 1,

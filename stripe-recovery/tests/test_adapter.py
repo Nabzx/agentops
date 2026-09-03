@@ -18,6 +18,27 @@ def _client(decline_code: str = "insufficient_funds") -> FakeStripeClient:
     )
 
 
+async def test_check_completed_is_none_before_any_execution() -> None:
+    adapter = StripeAdapter(_client())
+    assert await adapter.check_completed({"charge_id": "ch_1"}, "key-1") is None
+
+
+async def test_check_completed_returns_the_effect_after_execution() -> None:
+    client = _client()
+    adapter = StripeAdapter(client)
+    first = await adapter.execute({"charge_id": "ch_1"}, "key-1")
+    completed = await adapter.check_completed({"charge_id": "ch_1"}, "key-1")
+    assert completed is not None
+    assert completed.effect_id == first.effect_id
+    assert completed.raw == first.raw
+
+
+async def test_check_completed_is_none_for_an_unknown_charge() -> None:
+    adapter = StripeAdapter(FakeStripeClient())
+    result = await adapter.check_completed({"charge_id": "does_not_exist"}, "key-1")
+    assert result is None
+
+
 async def test_revalidate_true_for_a_still_failed_retryable_charge() -> None:
     adapter = StripeAdapter(_client())
     assert await adapter.revalidate({"charge_id": "ch_1"}) is True

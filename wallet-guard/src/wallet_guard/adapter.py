@@ -29,6 +29,22 @@ class WalletGuardAdapter:
     def __init__(self, client: ChainClient) -> None:
         self._client = client
 
+    async def check_completed(
+        self, action: dict[str, Any], idempotency_key: str
+    ) -> Effect | None:
+        """A genuinely cheap check here - see ADR-0018 and ``client.py``'s
+        ``get_revoked``. Only ever called by a worker on a retry, never the first
+        attempt for a job.
+        """
+        result = await self._client.get_revoked(idempotency_key)
+        if result is None:
+            return None
+        return Effect(
+            effect_id=result.id,
+            occurred_at=datetime.now(UTC),
+            raw={"allowance": result.allowance, "token_symbol": result.token_symbol},
+        )
+
     async def revalidate(self, action: dict[str, Any]) -> bool:
         """Re-check the approval is still active right before executing - the owner
         may have revoked it themselves, or changed it, since this was approved.

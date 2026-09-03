@@ -63,6 +63,14 @@ class ChainClient(Protocol):
         """
         ...
 
+    async def get_revoked(self, idempotency_key: str) -> TokenApproval | None:
+        """Has this idempotency key already produced a revocation? Genuinely cheap
+        here - a real chain client could answer just as cheaply, by looking up the
+        transaction for the recorded (account, nonce) rather than resubmitting one.
+        See ADR-0018 for why ``WalletGuardAdapter.check_completed`` needs this.
+        """
+        ...
+
 
 class ApprovalNotFoundError(Exception):
     """Raised when an operation targets an approval id that doesn't exist."""
@@ -106,3 +114,6 @@ class FakeChainClient:
         self._approvals[approval_id] = revoked
         self._result_by_key[idempotency_key] = revoked
         return revoked
+
+    async def get_revoked(self, idempotency_key: str) -> TokenApproval | None:
+        return self._result_by_key.get(idempotency_key)

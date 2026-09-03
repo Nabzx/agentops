@@ -28,3 +28,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0015](0015-chaos-test-the-exactly-once-guarantee.md) | Chaos-test the exactly-once guarantee, don't just assert it at three points | Accepted |
 | [0016](0016-wallet-guard-approval-revocation.md) | wallet-guard: revoke unlimited token approvals, exactly once, without a header | Accepted |
 | [0017](0017-revalidate-cannot-tell-stale-from-already-succeeded.md) | `revalidate()` can't tell "stale" from "already succeeded" - found by chaos-testing the real adapter | Accepted (finding); fix direction open |
+| [0018](0018-adapter-check-completed.md) | Close the gap: `Adapter.check_completed()`, asked before `revalidate()` on every attempt | Accepted |

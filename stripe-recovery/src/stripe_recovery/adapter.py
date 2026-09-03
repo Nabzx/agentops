@@ -29,6 +29,28 @@ class StripeAdapter:
     def __init__(self, client: StripeClient) -> None:
         self._client = client
 
+    async def check_completed(
+        self, action: dict[str, Any], idempotency_key: str
+    ) -> Effect | None:
+        """Not a free lookup for Stripe - see ``client.py``'s ``get_confirmed`` and
+        ADR-0018. A worker must only call this on a retry, never a genuine first
+        attempt for a job.
+        """
+        charge_id = action["charge_id"]
+        try:
+            result = await self._client.get_confirmed(
+                charge_id, idempotency_key=idempotency_key
+            )
+        except ChargeNotFoundError:
+            return None
+        if result is None:
+            return None
+        return Effect(
+            effect_id=result.id,
+            occurred_at=datetime.now(UTC),
+            raw={"status": result.status, "amount_pence": result.amount_pence},
+        )
+
     async def revalidate(self, action: dict[str, Any]) -> bool:
         """Re-check the charge is still failed, with a retryable decline code, right
         before executing - the world may have moved on since this was approved.
