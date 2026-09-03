@@ -136,14 +136,16 @@ for unlimited token approvals and proposes revoking them - the same propose-appr
 shape as `stripe-recovery`, but with exactly-once earned through nonce discipline instead of a
 payments-provider header, proving the core generalises past one Adapter shape.
 
-**A third detector's action set is locked** ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md),
-closing #60): release an unassociated Elastic IP address, and only that - the narrowest, safest
-AWS waste pattern checked against the real EC2 API. **#64 is `ready-for-agent`** to build the
-fake-cloud-client skeleton, the same shape #14 was for Stripe before #51 made it real.
+**A third detector is built** ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md), closing
+#60): `cloud-waste/` scans an account's Elastic IPs and proposes releasing any with no
+association - the same propose-approve-execute-audit shape again, but exactly-once earned from
+AWS's own error semantics (an already-released allocation id fails because it genuinely no longer
+exists) rather than a header or nonce discipline. A third genuinely different Adapter shape, one
+core.
 
 **#61 is researched and grilled** ([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md)): a
 `Critic` critiques a proposal (never originates one), fits the existing Snapshot with zero core
-changes, stays advisory-only, and lands on `cloud-waste` once #64 exists - not built alongside it.
+changes, stays advisory-only, and lands on `cloud-waste` next - **#68 is `ready-for-agent`**.
 `ClaudeCritic` gets built for real; nobody, including the agent building it, spends real money
 running it - that stays entirely the maintainer's call, made later.
 
@@ -151,8 +153,8 @@ running it - that stays entirely the maintainer's call, made later.
 
 ## Open decisions (Wayfinder map)
 
-None left blocking either track. `ready-for-agent`: **#64** (the cloud-waste flagship) and the
-Critic layer ADR-0021 unblocks once #64 exists.
+None left blocking either track. `ready-for-agent`: **#68**, the Critic layer ADR-0021 unblocks
+now that `cloud-waste` (#64) exists.
 
 Settled: **v1 cloud-waste action set** - release an unassociated Elastic IP, and only that
 ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md), closing #60) - **#64 is `ready-for-agent`**

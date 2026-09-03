@@ -1,0 +1,214 @@
+"""Chaos-tests the real pipeline, not just the outbox in isolation.
+
+Mirrors ``wallet-guard/tests/test_chaos.py`` and ``stripe-recovery/tests/test_chaos.py``
+exactly, for the third Adapter: ``ephor/tests/chaos_harness.py`` (ADR-0015) proves the
+outbox's own state machine holds exactly-once against a synthetic mock adapter; this
+drives the same randomised crash injection through the *real* ``CloudWasteAdapter``
+wrapping the *real* ``FakeCloudClient``, via ``ephor.outbox.InMemoryOutboxStore``'s
+real claim/attempt lifecycle.
+
+A worker checks ``store.list_attempts(job_id)`` before starting a new attempt - if a
+prior attempt already exists, ``adapter.check_completed`` is asked first (ADR-0018),
+and only falls through to ``revalidate()``/``execute()`` if it says ``None``. On a
+genuine first attempt, ``check_completed`` is never called at all.
+
+Deterministic and reproducible, same discipline as the core's own harness: each trial
+is seeded from its own index.
+"""
+
+from __future__ import annotations
+
+import random
+import uuid
+from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
+from enum import StrEnum
+
+from ephor.outbox import UNCLAIMABLE_STATUSES, InMemoryOutboxStore, OutboxStatus
+
+from cloud_waste.adapter import CloudWasteAdapter
+from cloud_waste.client import ElasticIp, FakeCloudClient
+
+NOW = datetime(2026, 1, 1, tzinfo=UTC)
+LEASE_SECONDS = 30
+MAX_CYCLES = 15
+
+
+class CrashPoint(StrEnum):
+    NONE = "none"
+    BEFORE_CLAIM = "before_claim"
+    AFTER_CLAIM_BEFORE_EXECUTE = "after_claim_before_execute"
+    AFTER_EXECUTE_BEFORE_COMMIT = "after_execute_before_commit"
+    AFTER_COMMIT_BEFORE_FINISH = "after_commit_before_finish"
+
+
+@dataclass
+class Violation:
+    seed: int
+    allocation_id: str
+    detail: str
+
+    def __str__(self) -> str:
+        return f"[seed {self.seed}] {self.allocation_id}: {self.detail}"
+
+
+@dataclass
+class TrialResult:
+    seed: int
+    jobs: int = 0
+    violations: list[Violation] = field(default_factory=list)
+
+
+async def _advance_one_cycle(
+    store: InMemoryOutboxStore,
+    adapter: CloudWasteAdapter,
+    job_id: uuid.UUID,
+    rng: random.Random,
+    *,
+    now: datetime,
+    force_none: bool,
+) -> tuple[bool, datetime]:
+    """Returns (is now terminal, clock time after this cycle)."""
+    crash_at = CrashPoint.NONE if force_none else rng.choice(list(CrashPoint))
+    worker_id = rng.choice(("worker-a", "worker-b"))
+
+    if crash_at == CrashPoint.BEFORE_CLAIM:
+        return False, now + timedelta(seconds=1)
+
+    claimed = await store.claim_batch(
+        worker_id=worker_id, now=now, lease_seconds=LEASE_SECONDS, batch_size=1
+    )
+    if not claimed:
+        return False, now + timedelta(seconds=LEASE_SECONDS + 1)
+    job = claimed[0]
+    action = dict(job.payload_json)
+
+    # ADR-0018: a prior attempt existing is the *only* signal that justifies asking
+    # check_completed at all - never on a genuine first attempt.
+    prior_attempts = await store.list_attempts(job_id)
+
+    attempt = await store.start_attempt(
+        job_id=job_id,
+        worker_id=worker_id,
+        previous_status=OutboxStatus.CLAIMED,
+        lease_expires_at=job.lease_expires_at,
+        now=now,
+    )
+
+    if prior_attempts:
+        completed = await adapter.check_completed(action, job.idempotency_key)
+        if completed is not None:
+            await store.mark_succeeded(job_id, now=now)
+            await store.finish_attempt(attempt.id, result_status="succeeded", now=now)
+            return True, now
+
+    if crash_at == CrashPoint.AFTER_CLAIM_BEFORE_EXECUTE:
+        return False, now + timedelta(seconds=LEASE_SECONDS + 1)
+
+    if not await adapter.revalidate(action):
+        raise AssertionError(f"unexpectedly stale action for job {job_id}")
+    await adapter.execute(action, job.idempotency_key)
+
+    if crash_at == CrashPoint.AFTER_EXECUTE_BEFORE_COMMIT:
+        # The real release already landed; check_completed will find it on the next
+        # cycle via get_released - the outbox job itself doesn't know yet, which is
+        # the whole point of asking the adapter rather than trusting job status.
+        return False, now + timedelta(seconds=LEASE_SECONDS + 1)
+
+    await store.mark_succeeded(job_id, now=now)
+
+    if crash_at == CrashPoint.AFTER_COMMIT_BEFORE_FINISH:
+        return True, now
+
+    await store.finish_attempt(attempt.id, result_status="succeeded", now=now)
+    return True, now
+
+
+async def run_trial(seed: int) -> TrialResult:
+    rng = random.Random(seed)  # noqa: S311 - deterministic test fuzzing, not crypto
+    store = InMemoryOutboxStore()
+    client = FakeCloudClient()
+    adapter = CloudWasteAdapter(client)
+    result = TrialResult(seed=seed)
+
+    allocation_ids: list[str] = []
+    for i in range(rng.randint(2, 5)):
+        allocation_id = f"eipalloc-{seed}-{i}"
+        client.seed(
+            ElasticIp(
+                id=allocation_id,
+                public_ip=f"203.0.113.{i}",
+                association_id=None,
+                instance_id=None,
+            )
+        )
+        allocation_ids.append(allocation_id)
+
+    now = NOW
+    for allocation_id in allocation_ids:
+        job = await store.create(
+            proposal_id=uuid.uuid4(),
+            action_type="release_address",
+            payload_json={"allocation_id": allocation_id},
+            idempotency_key=f"release-{allocation_id}",
+            next_attempt_at=NOW,
+        )
+        result.jobs += 1
+
+        for cycle in range(MAX_CYCLES):
+            done, now = await _advance_one_cycle(
+                store,
+                adapter,
+                job.id,
+                rng,
+                now=now,
+                force_none=cycle == MAX_CYCLES - 1,
+            )
+            if done:
+                break
+        else:  # pragma: no cover - the forced-NONE cycle should prevent this
+            result.violations.append(
+                Violation(seed, allocation_id, "never reached a terminal state")
+            )
+            continue
+
+        final = await store.get(job.id)
+        assert final is not None
+        final_status = OutboxStatus(final.status)
+
+        # Not just trusting the outbox's status - ask the actual cloud state.
+        remaining = await client.list_addresses()
+        still_present = next((a for a in remaining if a.id == allocation_id), None)
+        if still_present is not None:
+            result.violations.append(
+                Violation(seed, allocation_id, "still present after SUCCEEDED")
+            )
+        if final_status != OutboxStatus.SUCCEEDED:
+            result.violations.append(
+                Violation(seed, allocation_id, f"ended {final_status}, not SUCCEEDED")
+            )
+        if final_status in UNCLAIMABLE_STATUSES:
+            far_future = NOW + timedelta(days=365)
+            reclaimed = await store.claim_batch(
+                worker_id="chaos-auditor",
+                now=far_future,
+                lease_seconds=30,
+                batch_size=100,
+            )
+            if any(j.id == job.id for j in reclaimed):
+                result.violations.append(
+                    Violation(seed, allocation_id, "a terminal job was reclaimed later")
+                )
+
+    return result
+
+
+async def test_real_adapter_holds_exactly_once_under_crash_injection() -> None:
+    trials = 200
+    results = [await run_trial(seed) for seed in range(trials)]
+
+    violations = [v for r in results for v in r.violations]
+    assert not violations, "\n".join(str(v) for v in violations)
+
+    total_jobs = sum(r.jobs for r in results)
+    assert total_jobs >= trials * 2
