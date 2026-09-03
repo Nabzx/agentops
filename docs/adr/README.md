@@ -29,3 +29,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0016](0016-wallet-guard-approval-revocation.md) | wallet-guard: revoke unlimited token approvals, exactly once, without a header | Accepted |
 | [0017](0017-revalidate-cannot-tell-stale-from-already-succeeded.md) | `revalidate()` can't tell "stale" from "already succeeded" - found by chaos-testing the real adapter | Accepted (finding); fix direction open |
 | [0018](0018-adapter-check-completed.md) | Close the gap: `Adapter.check_completed()`, asked before `revalidate()` on every attempt | Accepted |
+| [0019](0019-security-benchmark.md) | A named, scored security benchmark - not more tests in disguise | Accepted |

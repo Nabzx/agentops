@@ -1,9 +1,12 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from ephor.outbox import (
     CLAIMABLE_STATUSES,
     UNCLAIMABLE_STATUSES,
+    DuplicateIdempotencyKeyError,
     InMemoryOutboxStore,
     OutboxJob,
     OutboxStatus,
@@ -70,6 +73,17 @@ def test_next_attempt_at_adds_the_backoff_to_now() -> None:
         job_id=job_id,
     )
     assert scheduled == NOW + timedelta(seconds=2.0)
+
+
+# --- InMemoryOutboxStore: creation --------------------------------------------------
+async def test_create_rejects_a_duplicate_idempotency_key() -> None:
+    """Mirrors production Postgres's own uq_outbox_idempotency_key constraint - found
+    missing while building the security benchmark, fixed on the spot.
+    """
+    store = InMemoryOutboxStore()
+    await _job(store, idempotency_key="shared-key")
+    with pytest.raises(DuplicateIdempotencyKeyError):
+        await _job(store, idempotency_key="shared-key")
 
 
 # --- InMemoryOutboxStore: claiming and status transitions ---------------------------
