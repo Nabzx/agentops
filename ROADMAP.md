@@ -141,22 +141,18 @@ closing #60): release an unassociated Elastic IP address, and only that - the na
 AWS waste pattern checked against the real EC2 API. **#64 is `ready-for-agent`** to build the
 fake-cloud-client skeleton, the same shape #14 was for Stripe before #51 made it real.
 
-**#61 is researched, not yet locked** ([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md)):
-critiquing a proposal (not originating one) fits the existing Snapshot with zero core changes and
-must stay advisory-only - but it's the first thing here to cross the "no paid API" line this repo
-has held at zero since Phase 0, so the ADR stays Proposed pending a grilling round, not decided
-unilaterally.
+**#61 is researched and grilled** ([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md)): a
+`Critic` critiques a proposal (never originates one), fits the existing Snapshot with zero core
+changes, stays advisory-only, and lands on `cloud-waste` once #64 exists - not built alongside it.
+`ClaudeCritic` gets built for real; nobody, including the agent building it, spends real money
+running it - that stays entirely the maintainer's call, made later.
 
 ---
 
 ## Open decisions (Wayfinder map)
 
-One open, not blocking Phase 4: **#61** - researched
-([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md), status **Proposed**, not yet Accepted): an
-LLM critiquing a proposal fits the existing Snapshot with no core changes, must stay
-advisory-only, and should ship behind an opt-in env var the same shape as every other real client
-- but crosses the "no paid API" line this repo has held since Phase 0, so it waits on a grilling
-round with the maintainer before it's `ready-for-agent`, not decided unilaterally here.
+None left blocking either track. `ready-for-agent`: **#64** (the cloud-waste flagship) and the
+Critic layer ADR-0021 unblocks once #64 exists.
 
 Settled: **v1 cloud-waste action set** - release an unassociated Elastic IP, and only that
 ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md), closing #60) - **#64 is `ready-for-agent`**

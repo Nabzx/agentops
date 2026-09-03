@@ -1,10 +1,8 @@
-# 0021. An LLM in the safety loop: critique, advisory-only, opt-in - and what's still open
+# 0021. An LLM in the safety loop: critique, advisory-only, opt-in - built, not yet spent
 
-- **Status:** Proposed - a recommendation, not a locked decision. Crosses a stated repo-wide
-  invariant (below), so it stays "Proposed" until the maintainer decides to grill and lock it,
-  not "Accepted" the way ADR-0020's research was.
+- **Status:** Accepted
 - **Date:** 2026-09-03
-- **Driven by:** #61 (`wayfinder:research`)
+- **Driven by:** #61 (`wayfinder:research`), grilled with the maintainer in one round
 
 ## Context
 
@@ -78,22 +76,36 @@ structural assertions (does it return a well-formed `Critique` within a timeout,
 known-clear-cut bad case get flagged) - never exact-text assertions, and never run in CI, same
 restriction ADR-0013/0020 already put on real Stripe/AWS clients.
 
-## What's still open - for a grilling round, not decided here
+## Grilled and locked
 
-- **Which detector gets this first**, and specifically: is it worth building *before* or
-  *alongside* #64 (the cloud-waste flagship) - the judgement-call problem this whole idea exists
-  to solve (idle-instance detection) lives there, not in `stripe-recovery`/`wallet-guard`'s
-  already-narrow, already-unambiguous action sets.
-- **Which model, and who provides the key.** Not a technical question - a decision about the
-  project's own convention (a specific vendor's API? does `Critic` name a vendor or stay
-  vendor-agnostic like `ChainClient` does for "some EVM chain"?).
-- **Whether the maintainer actually wants to spend real money to demonstrate this at all**, given
-  the project's own stated position (no paid API, anywhere) has held since Phase 0 - crossing it
-  is a real, deliberate call, not a default this research should make on its own.
+1. **Sequencing: cloud-waste v1 ships first, with no LLM at all - the Critic layer is added to it
+   afterward, once it exists.** #64 gets built exactly as ADR-0020 scoped it, rule-based, the same
+   way `stripe-recovery` and `wallet-guard` both shipped fake-only before anything "real" was
+   added. The Critic layer then attaches to `cloud-waste` specifically, because idle-instance
+   detection - deferred in ADR-0020 for exactly this reason - is the actual judgement-call problem
+   this feature exists to solve, not `stripe-recovery`/`wallet-guard`'s already-unambiguous action
+   sets.
+2. **Vendor and model: Anthropic, a small/cheap model by default.** The maintainer is already
+   building this entire project with Claude - no reason to reach for a different vendor. `Critic`
+   stays a vendor-agnostic Protocol (same pattern as `ChainClient` naming no specific chain); the
+   real implementation is named `ClaudeCritic`. A short annotation task doesn't need a large model
+   - the default model choice should keep the (already trivial) per-call cost as low as it can be.
+3. **Build it, don't spend on it - a real, explicit constraint, not a hedge.** `ClaudeCritic` gets
+   built for real, using the real `anthropic` SDK, wired correctly end to end - but it is never
+   invoked with a real API key during this work, and no test in this repo ever makes a live call
+   to it, exactly the same restriction already on `StripeTestModeClient` and the planned real AWS
+   client (ADR-0013/0020: real clients are built and structurally tested, never exercised in CI or
+   by the agent building them). `FakeCritic` stays the only thing any test, demo, or CI job ever
+   talks to. Whether and when a real key ever gets set is entirely the maintainer's call, made
+   later, separately from this decision.
 
 ## Consequences
 
-- No change proposed to any locked `ephor` interface - the finding that a critique fits inside
-  the existing opaque Snapshot is itself a real result, not a placeholder for one.
-- Nothing here is `ready-for-agent` yet, unlike ADR-0020 - this ADR stays Proposed until the
-  three open questions above are actually grilled with the maintainer.
+- No change needed to any locked `ephor` interface - the finding that a critique fits inside the
+  existing opaque Snapshot holds exactly as researched.
+- Unblocks a `ready-for-agent` build issue for the Critic layer, scoped to land on `cloud-waste`
+  once #64 exists - not built in the same unit of work as #64 itself.
+- README.md's "no paid API... nothing real is ever contacted" line will need a precise update once
+  this ships: true by default and true of everything anyone doesn't deliberately opt into, not true
+  of the one thing this ADR adds - worth getting the wording exactly right when the time comes,
+  not glossed over.
