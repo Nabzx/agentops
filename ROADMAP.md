@@ -141,19 +141,24 @@ closing #60): release an unassociated Elastic IP address, and only that - the na
 AWS waste pattern checked against the real EC2 API. **#64 is `ready-for-agent`** to build the
 fake-cloud-client skeleton, the same shape #14 was for Stripe before #51 made it real.
 
-**One research ticket remains open:** #61 - what it would take to put a real LLM in the safety
-loop (proposing or critiquing an action), the one item left from the project's own "what would
-make this more impressive" list, and the first research to touch the paid-API line this repo has
-held at zero so far.
+**#61 is researched, not yet locked** ([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md)):
+critiquing a proposal (not originating one) fits the existing Snapshot with zero core changes and
+must stay advisory-only - but it's the first thing here to cross the "no paid API" line this repo
+has held at zero since Phase 0, so the ADR stays Proposed pending a grilling round, not decided
+unilaterally.
 
 ---
 
 ## Open decisions (Wayfinder map)
 
-One open, not blocking Phase 4: **#61** (research) - what a real LLM in the safety loop would
-require, including the paid-API line it would be the first to cross.
+One open, not blocking Phase 4: **#61** - researched
+([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md), status **Proposed**, not yet Accepted): an
+LLM critiquing a proposal fits the existing Snapshot with no core changes, must stay
+advisory-only, and should ship behind an opt-in env var the same shape as every other real client
+- but crosses the "no paid API" line this repo has held since Phase 0, so it waits on a grilling
+round with the maintainer before it's `ready-for-agent`, not decided unilaterally here.
 
-Settled since: **v1 cloud-waste action set** - release an unassociated Elastic IP, and only that
+Settled: **v1 cloud-waste action set** - release an unassociated Elastic IP, and only that
 ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md), closing #60) - **#64 is `ready-for-agent`**
 to build the third detector.
 
