@@ -136,19 +136,26 @@ for unlimited token approvals and proposes revoking them - the same propose-appr
 shape as `stripe-recovery`, but with exactly-once earned through nonce discipline instead of a
 payments-provider header, proving the core generalises past one Adapter shape.
 
-**Two research tickets are open, in progress:** #60 - a third detector (cloud-cost waste),
-scoping the narrowest safe first action the way ADR-0011/0013/0016 did for the first two; and
-#61 - what it would take to put a real LLM in the safety loop (proposing or critiquing an
-action), the one item left from the project's own "what would make this more impressive" list,
-and the first research to touch the paid-API line this repo has held at zero so far.
+**A third detector's action set is locked** ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md),
+closing #60): release an unassociated Elastic IP address, and only that - the narrowest, safest
+AWS waste pattern checked against the real EC2 API, unblocking a `ready-for-agent` build issue for
+a fake-cloud-client skeleton, the same shape #14 was for Stripe before #51 made it real.
+
+**One research ticket remains open:** #61 - what it would take to put a real LLM in the safety
+loop (proposing or critiquing an action), the one item left from the project's own "what would
+make this more impressive" list, and the first research to touch the paid-API line this repo has
+held at zero so far.
 
 ---
 
 ## Open decisions (Wayfinder map)
 
-Two open, neither blocking Phase 4: **#60** (research) - a third detector's v1 action set
-(cloud-cost waste), and **#61** (research) - what a real LLM in the safety loop would require,
-including the paid-API line it would be the first to cross.
+One open, not blocking Phase 4: **#61** (research) - what a real LLM in the safety loop would
+require, including the paid-API line it would be the first to cross.
+
+Settled since: **v1 cloud-waste action set** - release an unassociated Elastic IP, and only that
+([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md), closing #60) - unblocks a
+`ready-for-agent` build issue for the third detector.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
