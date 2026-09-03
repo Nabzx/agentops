@@ -186,7 +186,9 @@ class OutboxStore(Protocol):
         next_attempt_at: datetime,
         priority: int = 100,
         maximum_attempts: int = 5,
-    ) -> OutboxJob: ...
+    ) -> OutboxJob:
+        """Raises ``DuplicateIdempotencyKeyError`` if the key is already in use."""
+        ...
 
     async def get(self, job_id: uuid.UUID) -> OutboxJob | None: ...
 
@@ -304,6 +306,15 @@ class OutboxJobNotFoundError(Exception):
     """Raised when an operation targets an Outbox job id that doesn't exist."""
 
 
+class DuplicateIdempotencyKeyError(Exception):
+    """Raised by ``create()`` when the key is already in use by another job.
+
+    Mirrors the production Postgres schema's own ``UniqueConstraint`` on
+    ``idempotency_key`` (``uq_outbox_idempotency_key``) - the same guarantee, not a
+    weaker in-memory stand-in for it.
+    """
+
+
 class InMemoryOutboxStore:
     """A process-local, in-memory ``OutboxStore``. Not durable across restarts."""
 
@@ -328,6 +339,10 @@ class InMemoryOutboxStore:
         priority: int = 100,
         maximum_attempts: int = 5,
     ) -> OutboxJob:
+        if any(j.idempotency_key == idempotency_key for j in self._jobs.values()):
+            raise DuplicateIdempotencyKeyError(
+                f"idempotency_key {idempotency_key!r} is already in use"
+            )
         job = InMemoryOutboxJob(
             id=uuid.uuid4(),
             proposal_id=proposal_id,
@@ -529,6 +544,7 @@ class InMemoryOutboxStore:
 __all__ = [
     "CLAIMABLE_STATUSES",
     "UNCLAIMABLE_STATUSES",
+    "DuplicateIdempotencyKeyError",
     "InMemoryAttempt",
     "InMemoryOutboxJob",
     "InMemoryOutboxStore",

@@ -66,7 +66,10 @@ Named after the Spartan magistrates whose job was to check the king's power befo
   ([ADR-0015](docs/adr/0015-chaos-test-the-exactly-once-guarantee.md),
   [report](docs/chaos-report.md)), not just claimed.
 - **Audit**: every step writes to an append-only, hash-chained log. Tampering breaks the chain
-  detectably; nothing can be quietly edited or deleted.
+  detectably; nothing can be quietly edited or deleted. Self-approval, tampering and replay are
+  each checked by a named, scored [security benchmark](docs/security-benchmark.md)
+  ([ADR-0019](docs/adr/0019-security-benchmark.md)) - including the one honest limitation it
+  found: an Adapter that lies about its own idempotency can't be caught, by design.
 
 ## Status
 
