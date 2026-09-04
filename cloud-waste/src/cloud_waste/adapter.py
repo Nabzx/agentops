@@ -1,9 +1,10 @@
-"""CloudWasteAdapter: the Adapter (ephor.effects) that releases an unassociated
-Elastic IP.
+"""The two Adapters (ephor.effects) this package ships - one per action type, per
+ADR-0006, not one Adapter branching on action shape.
 
-See ADR-0020 for the action set and why exactly-once here rests on "does the
-allocation id still exist" rather than a header (ADR-0006/0011) or nonce discipline
-(ADR-0016).
+``CloudWasteAdapter`` releases an unassociated Elastic IP (ADR-0020) - exactly-once
+rests on "does the allocation id still exist". ``IdleInstanceAdapter`` stops an idle
+instance (ADR-0022) - exactly-once needs no dedup ledger at all, since AWS's own
+``StopInstances`` is safe to call on an already-stopped instance regardless of key.
 """
 
 from __future__ import annotations
@@ -13,7 +14,13 @@ from typing import Any
 
 from ephor.effects import Effect, PermanentEffectError
 
-from cloud_waste.client import AddressNotFoundError, CloudClient
+from cloud_waste.client import (
+    IDLE_CPU_PERCENT_THRESHOLD,
+    IDLE_NETWORK_BYTES_THRESHOLD,
+    AddressNotFoundError,
+    CloudClient,
+    InstanceNotFoundError,
+)
 
 
 class CloudWasteAdapter:
@@ -74,4 +81,70 @@ class CloudWasteAdapter:
             effect_id=result.id,
             occurred_at=datetime.now(UTC),
             raw={"released_public_ip": result.public_ip},
+        )
+
+
+class IdleInstanceAdapter:
+    """Stops one idle EC2 instance.
+
+    ``is_idempotent`` because AWS's own instance state machine makes a repeat
+    ``StopInstances`` call a safe no-op, not a second real effect - see ``client.py``'s
+    module docstring and ADR-0022.
+    """
+
+    is_idempotent = True
+
+    def __init__(self, client: CloudClient) -> None:
+        self._client = client
+
+    async def check_completed(
+        self, action: dict[str, Any], idempotency_key: str
+    ) -> Effect | None:
+        """Only ever called by a worker on a retry, never the first attempt for a
+        job - see ADR-0018. Unlike ``CloudWasteAdapter``'s version, this asks a state
+        fact, not a per-key record (ADR-0022).
+        """
+        instance_id = action["instance_id"]
+        result = await self._client.get_stopped(
+            instance_id, idempotency_key=idempotency_key
+        )
+        if result is None:
+            return None
+        return Effect(
+            effect_id=result.id,
+            occurred_at=datetime.now(UTC),
+            raw={"stopped_instance_id": result.id},
+        )
+
+    async def revalidate(self, action: dict[str, Any]) -> bool:
+        """Re-check the instance is still running and still idle by the same
+        criteria the detector used - it may have started doing real work, or already
+        been stopped by hand, since this was approved.
+        """
+        instance_id = action["instance_id"]
+        instances = await self._client.list_instances()
+        current = next((i for i in instances if i.id == instance_id), None)
+        if current is None or current.state != "running":
+            return False  # already stopped, or never existed - nothing to do
+        return (
+            current.avg_cpu_percent <= IDLE_CPU_PERCENT_THRESHOLD
+            and current.avg_network_bytes <= IDLE_NETWORK_BYTES_THRESHOLD
+        )
+
+    async def execute(self, action: dict[str, Any], idempotency_key: str) -> Effect:
+        """Raises PermanentEffectError on anything that will never succeed - per the
+        Adapter contract (ADR-0006), execute() never lets an unclassified exception
+        escape.
+        """
+        instance_id = action["instance_id"]
+        try:
+            result = await self._client.stop_instance(
+                instance_id, idempotency_key=idempotency_key
+            )
+        except InstanceNotFoundError as exc:
+            raise PermanentEffectError(str(exc)) from exc
+        return Effect(
+            effect_id=result.id,
+            occurred_at=datetime.now(UTC),
+            raw={"stopped_instance_id": result.id},
         )

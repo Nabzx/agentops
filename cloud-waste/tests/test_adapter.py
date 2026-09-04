@@ -1,8 +1,12 @@
+from datetime import UTC, datetime
+
 import pytest
 from ephor.effects import PermanentEffectError
 
-from cloud_waste.adapter import CloudWasteAdapter
-from cloud_waste.client import ElasticIp, FakeCloudClient
+from cloud_waste.adapter import CloudWasteAdapter, IdleInstanceAdapter
+from cloud_waste.client import ElasticIp, FakeCloudClient, Instance
+
+NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def _client(
@@ -22,6 +26,29 @@ def _client(
 
 def _action(allocation_id: str = "eipalloc-1") -> dict[str, str]:
     return {"allocation_id": allocation_id}
+
+
+def _instance_client(
+    state: str = "running",
+    avg_cpu_percent: float = 1.0,
+    avg_network_bytes: float = 1_000.0,
+) -> FakeCloudClient:
+    client = FakeCloudClient()
+    client.seed_instance(
+        Instance(
+            id="i-1",
+            state=state,
+            launch_time=NOW,
+            tags={},
+            avg_cpu_percent=avg_cpu_percent,
+            avg_network_bytes=avg_network_bytes,
+        )
+    )
+    return client
+
+
+def _instance_action(instance_id: str = "i-1") -> dict[str, str]:
+    return {"instance_id": instance_id}
 
 
 async def test_check_completed_is_none_before_any_execution() -> None:
@@ -90,3 +117,65 @@ async def test_execute_raises_permanent_error_for_an_unknown_address() -> None:
 
 def test_cloud_waste_adapter_declares_itself_idempotent() -> None:
     assert CloudWasteAdapter.is_idempotent is True
+
+
+# --- IdleInstanceAdapter ---------------------------------------------------------
+
+
+async def test_idle_check_completed_is_none_before_any_execution() -> None:
+    adapter = IdleInstanceAdapter(_instance_client())
+    assert await adapter.check_completed(_instance_action(), "key-1") is None
+
+
+async def test_idle_check_completed_returns_the_effect_after_execution() -> None:
+    client = _instance_client()
+    adapter = IdleInstanceAdapter(client)
+    first = await adapter.execute(_instance_action(), "key-1")
+    completed = await adapter.check_completed(_instance_action(), "different-key")
+    assert completed is not None
+    assert completed.effect_id == first.effect_id
+
+
+async def test_idle_revalidate_true_for_a_still_idle_instance() -> None:
+    adapter = IdleInstanceAdapter(_instance_client())
+    assert await adapter.revalidate(_instance_action()) is True
+
+
+async def test_idle_revalidate_false_for_a_busy_instance() -> None:
+    adapter = IdleInstanceAdapter(_instance_client(avg_cpu_percent=90.0))
+    assert await adapter.revalidate(_instance_action()) is False
+
+
+async def test_idle_revalidate_false_for_an_already_stopped_instance() -> None:
+    adapter = IdleInstanceAdapter(_instance_client(state="stopped"))
+    assert await adapter.revalidate(_instance_action()) is False
+
+
+async def test_idle_revalidate_false_for_an_unknown_instance() -> None:
+    adapter = IdleInstanceAdapter(FakeCloudClient())
+    assert await adapter.revalidate(_instance_action("does_not_exist")) is False
+
+
+async def test_idle_execute_returns_an_effect_on_success() -> None:
+    adapter = IdleInstanceAdapter(_instance_client())
+    effect = await adapter.execute(_instance_action(), "key-1")
+    assert effect.effect_id == "i-1"
+    assert effect.raw["stopped_instance_id"] == "i-1"
+
+
+async def test_idle_execute_is_idempotent_across_repeated_calls() -> None:
+    client = _instance_client()
+    adapter = IdleInstanceAdapter(client)
+    first = await adapter.execute(_instance_action(), "key-1")
+    second = await adapter.execute(_instance_action(), "key-2")
+    assert first.effect_id == second.effect_id == "i-1"
+
+
+async def test_idle_execute_raises_permanent_error_for_an_unknown_instance() -> None:
+    adapter = IdleInstanceAdapter(FakeCloudClient())
+    with pytest.raises(PermanentEffectError):
+        await adapter.execute(_instance_action("does_not_exist"), "key-1")
+
+
+def test_idle_instance_adapter_declares_itself_idempotent() -> None:
+    assert IdleInstanceAdapter.is_idempotent is True

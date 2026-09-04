@@ -8,7 +8,9 @@ async def test_demo_runs_end_to_end_without_error(
 ) -> None:
     await main()
     output = capsys.readouterr().out
-    assert "scanned the account" in output
-    assert "approved by a supervisor" in output
-    assert "executed" in output
-    assert "chain intact: True" in output
+    assert "part 1: unassociated Elastic IPs" in output
+    assert "scanned the account -> 1 unassociated address(es) proposed" in output
+    assert "part 2: idle EC2 instances" in output
+    assert "scanned the account -> 1 idle instance(s) proposed" in output
+    assert output.count("approved by a supervisor") == 2
+    assert output.count("chain intact: True") == 2
