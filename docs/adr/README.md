@@ -32,3 +32,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0019](0019-security-benchmark.md) | A named, scored security benchmark - not more tests in disguise | Accepted |
 | [0020](0020-v1-cloud-waste-action-set.md) | v1 cloud-waste action set: release an unassociated Elastic IP, and only that | Accepted |
 | [0021](0021-llm-in-the-safety-loop.md) | An LLM in the safety loop: critique, advisory-only, opt-in - built, not yet spent | Accepted |
+| [0022](0022-idle-instance-detection.md) | Idle-EC2-instance detection (v1.1): a real judgement call, and what the Critic is actually for | Accepted |

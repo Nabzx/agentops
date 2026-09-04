@@ -143,22 +143,26 @@ AWS's own error semantics (an already-released allocation id fails because it ge
 exists) rather than a header or nonce discipline. A third genuinely different Adapter shape, one
 core.
 
-**#61 is researched and grilled** ([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md)): a
+**The Critic is built** ([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md), closing #61): a
 `Critic` critiques a proposal (never originates one), fits the existing Snapshot with zero core
-changes, stays advisory-only, and lands on `cloud-waste` next - **#68 is `ready-for-agent`**.
-`ClaudeCritic` gets built for real; nobody, including the agent building it, spends real money
-running it - that stays entirely the maintainer's call, made later.
+changes, stays advisory-only, and lands on `cloud-waste` - `ClaudeCritic` is real, working code
+that nobody, including the agent that built it, has ever spent real money running. That stays
+entirely the maintainer's call, made later.
+
+**Idle-EC2-instance detection (v1.1) is researched** ([ADR-0022](docs/adr/0022-idle-instance-detection.md),
+closing #71) - the first genuinely judgement-call-shaped action in the project, and the first real
+job for the Critic: a low-CPU-and-network heuristic mirroring AWS's own published Trusted Advisor
+convention (exact constants to re-check against AWS's current docs before a real client ships,
+not before this ships fake-only), stopping (never terminating) the instance, and a fourth distinct
+idempotency shape - `check_completed` asks whether the instance is already stopped, since
+`StopInstances` doesn't fail the way `ReleaseAddress` does on a repeat call.
 
 ---
 
 ## Open decisions (Wayfinder map)
 
-None left blocking either track. `ready-for-agent`: **#68**, the Critic layer ADR-0021 unblocks
-now that `cloud-waste` (#64) exists.
-
-Settled: **v1 cloud-waste action set** - release an unassociated Elastic IP, and only that
-([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md), closing #60) - **#64 is `ready-for-agent`**
-to build the third detector.
+None left blocking either track. Not yet `ready-for-agent`: idle-instance detection (v1.1) still
+needs its build issue filed once someone's ready to pick it up.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
