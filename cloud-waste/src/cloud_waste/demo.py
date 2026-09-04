@@ -5,11 +5,17 @@ Run with: ``uv run python -m cloud_waste.demo``
 No AWS account, no boto3, nothing real. Same shape as ``stripe_recovery.demo`` and
 ``wallet_guard.demo`` - the point of this package is proving that shape holds for a
 third, genuinely different kind of Adapter.
+
+The Critic (ADR-0021) is opt-in the same way a real cloud/Stripe client is:
+``EPHOR_CRITIC_API_KEY`` unset (the default, and always true in CI) means
+``FakeCritic`` - no network call, no cost. Setting it means a real, paid call to
+Claude on every proposal scanned here.
 """
 
 from __future__ import annotations
 
 import asyncio
+import os
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -20,10 +26,21 @@ from ephor.outbox import InMemoryOutboxStore
 
 from cloud_waste.adapter import CloudWasteAdapter
 from cloud_waste.client import ElasticIp, FakeCloudClient
+from cloud_waste.critic import ClaudeCritic, ClaudeCriticSettings, Critic, FakeCritic
 from cloud_waste.detector import scan_for_unassociated_addresses
 
 REQUESTER_ID = uuid.uuid4()
 SUPERVISOR_ID = uuid.uuid4()
+
+
+def _build_critic() -> Critic:
+    """Real Claude when EPHOR_CRITIC_API_KEY is set (see ADR-0021) - a real, paid
+    call on every proposal. FakeCritic, free and canned, otherwise.
+    """
+    if os.environ.get("EPHOR_CRITIC_API_KEY"):
+        print("Using a real Claude critic (API key set via env - this costs money).\n")
+        return ClaudeCritic(ClaudeCriticSettings.model_validate({}))
+    return FakeCritic()
 
 
 async def main() -> None:
@@ -45,6 +62,7 @@ async def main() -> None:
         ]
     )
     adapter = CloudWasteAdapter(client)
+    critic = _build_critic()
     proposals = InMemoryProposalStore()
     approvals = InMemoryApprovalStore()
     outbox = InMemoryOutboxStore()
@@ -58,12 +76,19 @@ async def main() -> None:
         requester_id=REQUESTER_ID,
         now=now,
         expires_at=now + timedelta(hours=48),
+        critic=critic,
     )
     print(
         f"1. scanned the account -> {len(candidates)} unassociated address(es) proposed"
     )
     for c in candidates:
         print(f"   - {c.approval.snapshot_json['public_ip']} has no association")
+        critique = c.approval.snapshot_json.get("llm_critique")
+        if isinstance(critique, dict):
+            print(
+                f"     critic ({critique['model']}) says: {critique['recommendation']}"
+                f" - {critique['reasoning']}"
+            )
 
     if not candidates:
         print("\nNo unassociated addresses found - nothing to approve or execute.")

@@ -86,7 +86,10 @@ through nonce discipline instead of a payments-provider header
 ([ADR-0016](docs/adr/0016-wallet-guard-approval-revocation.md)); `cloud-waste/` releases
 unassociated Elastic IP addresses, earning exactly-once from AWS's own error semantics instead of
 either ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md)) - three genuinely different
-Adapter shapes, one core.
+Adapter shapes, one core. `cloud-waste/` can also ask a real LLM for a second opinion on a
+proposal before a human sees it, always advisory, never a decision
+([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md)) - the one deliberate exception to "nothing
+here touches a paid API": off by default, a free canned response unless you set your own key.
 
 ## Contributing
 

@@ -26,6 +26,24 @@ uv run python -m cloud_waste.demo
 Walks through the whole loop on two fake addresses - one unassociated, one attached to an
 instance - and prints the audit trail at the end.
 
+## The Critic (optional, and never free)
+
+A `Critic` gives a proposal a second opinion before a human sees it - see
+[ADR-0021](../docs/adr/0021-llm-in-the-safety-loop.md). It's always advisory: it can never
+approve or reject anything, and it never touches what gets proposed, only whether a human should
+hesitate over it.
+
+`FakeCritic` - canned, deterministic, free - is the default, and the only thing this package's
+own tests, demo, and CI ever talk to. Setting `EPHOR_CRITIC_API_KEY` switches the demo to
+`ClaudeCritic`, a real, working implementation that makes a real, paid call to Claude for every
+proposal scanned. It costs a fraction of a cent per call on the default model, but it is not
+free, and nothing in this repo ever sets that variable for you.
+
+```bash
+export EPHOR_CRITIC_API_KEY=sk-ant-...   # your own key - this will cost you real money
+uv run python -m cloud_waste.demo
+```
+
 ## Developing
 
 ```bash
