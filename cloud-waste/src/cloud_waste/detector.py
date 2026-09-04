@@ -6,6 +6,11 @@ Note on ``subject_id``: an allocation id here is an opaque, detector-defined str
 charge ids and ``wallet_guard.detector``'s approval ids. It lives in the Snapshot
 instead, per ADR-0008. ``requested_amount_pence`` is left unset - there's no currency
 amount fetched here, and inventing one would be a fabricated number, not evidence.
+
+An optional ``Critic`` (ADR-0021) adds a second opinion to the Snapshot before it's
+hashed - ``FakeCritic`` by default, so nothing here changes unless a caller opts in.
+The critique is stored, never acted on: this detector's own "no association" check is
+still the entire condition for proposing anything, unconditionally.
 """
 
 from __future__ import annotations
@@ -18,6 +23,7 @@ from ephor.actions import Proposal, ProposalStore
 from ephor.approvals import ApprovalRequest, ApprovalStore
 
 from cloud_waste.client import CloudClient
+from cloud_waste.critic import Critic
 
 
 @dataclass(frozen=True)
@@ -34,6 +40,7 @@ async def scan_for_unassociated_addresses(
     requester_id: uuid.UUID,
     now: datetime,
     expires_at: datetime,
+    critic: Critic | None = None,
 ) -> list[WasteCandidate]:
     """Scan once, propose releasing every address with no association. Unconditional,
     not an allow-list against a set of values - "no association" is the entire
@@ -60,6 +67,11 @@ async def scan_for_unassociated_addresses(
                 "else is using it"
             ),
         }
+        if critic is not None:
+            critique = await critic.critique(
+                {"public_ip": address.public_ip, "allocation_id": address.id}
+            )
+            snapshot["llm_critique"] = critique.as_snapshot_field()
         approval = await approvals.create(
             proposal_id=proposal.id,
             subject_type="elastic_ip",
