@@ -84,10 +84,12 @@ Stripe client by default, or a real Stripe test-mode account one environment var
 generalises: `wallet-guard/` revokes dangerous unlimited token approvals, earning exactly-once
 through nonce discipline instead of a payments-provider header
 ([ADR-0016](docs/adr/0016-wallet-guard-approval-revocation.md)); `cloud-waste/` releases
-unassociated Elastic IP addresses, earning exactly-once from AWS's own error semantics instead of
-either ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md)) - three genuinely different
-Adapter shapes, one core. `cloud-waste/` can also ask a real LLM for a second opinion on a
-proposal before a human sees it, always advisory, never a decision
+unassociated Elastic IP addresses and stops idle EC2 instances, earning exactly-once from AWS's
+own error and state semantics instead of either
+([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md),
+[0022](docs/adr/0022-idle-instance-detection.md)) - four genuinely different Adapter shapes, one
+core. `cloud-waste/` can also ask a real LLM for a second opinion on a proposal before a human
+sees it, always advisory, never a decision
 ([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md)) - the one deliberate exception to "nothing
 here touches a paid API": off by default, a free canned response unless you set your own key.
 

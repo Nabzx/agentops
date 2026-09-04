@@ -149,20 +149,23 @@ changes, stays advisory-only, and lands on `cloud-waste` - `ClaudeCritic` is rea
 that nobody, including the agent that built it, has ever spent real money running. That stays
 entirely the maintainer's call, made later.
 
-**Idle-EC2-instance detection (v1.1) is researched** ([ADR-0022](docs/adr/0022-idle-instance-detection.md),
-closing #71) - the first genuinely judgement-call-shaped action in the project, and the first real
-job for the Critic: a low-CPU-and-network heuristic mirroring AWS's own published Trusted Advisor
-convention (exact constants to re-check against AWS's current docs before a real client ships,
-not before this ships fake-only), stopping (never terminating) the instance, and a fourth distinct
-idempotency shape - `check_completed` asks whether the instance is already stopped, since
-`StopInstances` doesn't fail the way `ReleaseAddress` does on a repeat call.
+**Idle-EC2-instance detection (v1.1) is built** ([ADR-0022](docs/adr/0022-idle-instance-detection.md),
+closing #71 and #73) - the first genuinely judgement-call-shaped action in the project, and the
+first real job for the Critic: a low-CPU-and-network heuristic mirroring AWS's own published
+Trusted Advisor convention (exact constants still to re-check against AWS's current docs before a
+real client ships, not before this shipped fake-only), stopping (never terminating) the instance,
+and a fourth distinct idempotency shape - `check_completed` asks whether the instance is already
+stopped, since `StopInstances` doesn't fail the way `ReleaseAddress` does on a repeat call, so no
+dedup ledger is needed at all. `IdleInstanceAdapter` sits alongside `CloudWasteAdapter` in
+`cloud-waste/` - one Adapter per action type, not one Adapter branching on shape. The chaos-testing
+harness now drives both action types through one adapter-agnostic driver and holds exactly-once at
+5,000 trials, zero violations, for either.
 
 ---
 
 ## Open decisions (Wayfinder map)
 
-None left blocking either track. Not yet `ready-for-agent`: idle-instance detection (v1.1) still
-needs its build issue filed once someone's ready to pick it up.
+None left blocking either track, and nothing queued right now.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
