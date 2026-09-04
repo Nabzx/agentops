@@ -1,16 +1,20 @@
-"""Chaos-tests the real pipeline, not just the outbox in isolation.
+"""Chaos-tests the real pipeline, not just the outbox in isolation - for both
+Adapters this package ships.
 
 Mirrors ``wallet-guard/tests/test_chaos.py`` and ``stripe-recovery/tests/test_chaos.py``
-exactly, for the third Adapter: ``ephor/tests/chaos_harness.py`` (ADR-0015) proves the
-outbox's own state machine holds exactly-once against a synthetic mock adapter; this
-drives the same randomised crash injection through the *real* ``CloudWasteAdapter``
-wrapping the *real* ``FakeCloudClient``, via ``ephor.outbox.InMemoryOutboxStore``'s
-real claim/attempt lifecycle.
+exactly: ``ephor/tests/chaos_harness.py`` (ADR-0015) proves the outbox's own state
+machine holds exactly-once against a synthetic mock adapter; this drives the same
+randomised crash injection through the *real* Adapters (``CloudWasteAdapter``,
+``IdleInstanceAdapter``) wrapping the *real* ``FakeCloudClient``, via
+``ephor.outbox.InMemoryOutboxStore``'s real claim/attempt lifecycle.
 
 A worker checks ``store.list_attempts(job_id)`` before starting a new attempt - if a
 prior attempt already exists, ``adapter.check_completed`` is asked first (ADR-0018),
 and only falls through to ``revalidate()``/``execute()`` if it says ``None``. On a
-genuine first attempt, ``check_completed`` is never called at all.
+genuine first attempt, ``check_completed`` is never called at all. The crash-injection
+driver itself is adapter-agnostic - it only ever calls the three ``Adapter`` methods
+every Adapter in this project implements - so one harness runs both resource types,
+parametrised rather than duplicated.
 
 Deterministic and reproducible, same discipline as the core's own harness: each trial
 is seeded from its own index.
@@ -23,15 +27,19 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
+from typing import Literal
 
+from ephor.effects import Adapter
 from ephor.outbox import UNCLAIMABLE_STATUSES, InMemoryOutboxStore, OutboxStatus
 
-from cloud_waste.adapter import CloudWasteAdapter
-from cloud_waste.client import ElasticIp, FakeCloudClient
+from cloud_waste.adapter import CloudWasteAdapter, IdleInstanceAdapter
+from cloud_waste.client import ElasticIp, FakeCloudClient, Instance
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 LEASE_SECONDS = 30
 MAX_CYCLES = 15
+
+ResourceKind = Literal["address", "instance"]
 
 
 class CrashPoint(StrEnum):
@@ -45,11 +53,11 @@ class CrashPoint(StrEnum):
 @dataclass
 class Violation:
     seed: int
-    allocation_id: str
+    resource_id: str
     detail: str
 
     def __str__(self) -> str:
-        return f"[seed {self.seed}] {self.allocation_id}: {self.detail}"
+        return f"[seed {self.seed}] {self.resource_id}: {self.detail}"
 
 
 @dataclass
@@ -61,14 +69,16 @@ class TrialResult:
 
 async def _advance_one_cycle(
     store: InMemoryOutboxStore,
-    adapter: CloudWasteAdapter,
+    adapter: Adapter,
     job_id: uuid.UUID,
     rng: random.Random,
     *,
     now: datetime,
     force_none: bool,
 ) -> tuple[bool, datetime]:
-    """Returns (is now terminal, clock time after this cycle)."""
+    """Returns (is now terminal, clock time after this cycle). Adapter-agnostic - only
+    ever calls the three methods every ``Adapter`` in this project implements.
+    """
     crash_at = CrashPoint.NONE if force_none else rng.choice(list(CrashPoint))
     worker_id = rng.choice(("worker-a", "worker-b"))
 
@@ -110,9 +120,9 @@ async def _advance_one_cycle(
     await adapter.execute(action, job.idempotency_key)
 
     if crash_at == CrashPoint.AFTER_EXECUTE_BEFORE_COMMIT:
-        # The real release already landed; check_completed will find it on the next
-        # cycle via get_released - the outbox job itself doesn't know yet, which is
-        # the whole point of asking the adapter rather than trusting job status.
+        # The real effect already landed; check_completed will find it on the next
+        # cycle - the outbox job itself doesn't know yet, which is the whole point of
+        # asking the adapter rather than trusting job status.
         return False, now + timedelta(seconds=LEASE_SECONDS + 1)
 
     await store.mark_succeeded(job_id, now=now)
@@ -124,33 +134,72 @@ async def _advance_one_cycle(
     return True, now
 
 
-async def run_trial(seed: int) -> TrialResult:
-    rng = random.Random(seed)  # noqa: S311 - deterministic test fuzzing, not crypto
-    store = InMemoryOutboxStore()
-    client = FakeCloudClient()
-    adapter = CloudWasteAdapter(client)
-    result = TrialResult(seed=seed)
+def _build_adapter(kind: ResourceKind, client: FakeCloudClient) -> Adapter:
+    if kind == "address":
+        return CloudWasteAdapter(client)
+    return IdleInstanceAdapter(client)
 
-    allocation_ids: list[str] = []
-    for i in range(rng.randint(2, 5)):
-        allocation_id = f"eipalloc-{seed}-{i}"
+
+def _seed_resource(
+    kind: ResourceKind, client: FakeCloudClient, resource_id: str
+) -> None:
+    if kind == "address":
         client.seed(
             ElasticIp(
-                id=allocation_id,
-                public_ip=f"203.0.113.{i}",
+                id=resource_id,
+                public_ip="203.0.113.1",
                 association_id=None,
                 instance_id=None,
             )
         )
-        allocation_ids.append(allocation_id)
+    else:
+        client.seed_instance(
+            Instance(
+                id=resource_id,
+                state="running",
+                launch_time=NOW - timedelta(days=90),
+                tags={},
+                avg_cpu_percent=1.0,
+                avg_network_bytes=1_000.0,
+            )
+        )
+
+
+async def _effect_really_landed(
+    kind: ResourceKind, client: FakeCloudClient, resource_id: str
+) -> bool:
+    """Not just trusting the outbox's status - ask the actual cloud state. An address
+    ceases to exist on release; an instance stays present but changes state."""
+    if kind == "address":
+        remaining = await client.list_addresses()
+        return not any(a.id == resource_id for a in remaining)
+    instances = await client.list_instances()
+    current = next((i for i in instances if i.id == resource_id), None)
+    return current is not None and current.state == "stopped"
+
+
+async def run_trial(seed: int, kind: ResourceKind) -> TrialResult:
+    rng = random.Random(seed)  # noqa: S311 - deterministic test fuzzing, not crypto
+    store = InMemoryOutboxStore()
+    client = FakeCloudClient()
+    adapter = _build_adapter(kind, client)
+    action_type = "release_address" if kind == "address" else "stop_instance"
+    payload_key = "allocation_id" if kind == "address" else "instance_id"
+    result = TrialResult(seed=seed)
+
+    resource_ids: list[str] = []
+    for i in range(rng.randint(2, 5)):
+        resource_id = f"{kind}-{seed}-{i}"
+        _seed_resource(kind, client, resource_id)
+        resource_ids.append(resource_id)
 
     now = NOW
-    for allocation_id in allocation_ids:
+    for resource_id in resource_ids:
         job = await store.create(
             proposal_id=uuid.uuid4(),
-            action_type="release_address",
-            payload_json={"allocation_id": allocation_id},
-            idempotency_key=f"release-{allocation_id}",
+            action_type=action_type,
+            payload_json={payload_key: resource_id},
+            idempotency_key=f"{action_type}-{resource_id}",
             next_attempt_at=NOW,
         )
         result.jobs += 1
@@ -168,7 +217,7 @@ async def run_trial(seed: int) -> TrialResult:
                 break
         else:  # pragma: no cover - the forced-NONE cycle should prevent this
             result.violations.append(
-                Violation(seed, allocation_id, "never reached a terminal state")
+                Violation(seed, resource_id, "never reached a terminal state")
             )
             continue
 
@@ -176,16 +225,13 @@ async def run_trial(seed: int) -> TrialResult:
         assert final is not None
         final_status = OutboxStatus(final.status)
 
-        # Not just trusting the outbox's status - ask the actual cloud state.
-        remaining = await client.list_addresses()
-        still_present = next((a for a in remaining if a.id == allocation_id), None)
-        if still_present is not None:
+        if not await _effect_really_landed(kind, client, resource_id):
             result.violations.append(
-                Violation(seed, allocation_id, "still present after SUCCEEDED")
+                Violation(seed, resource_id, "effect did not land despite SUCCEEDED")
             )
         if final_status != OutboxStatus.SUCCEEDED:
             result.violations.append(
-                Violation(seed, allocation_id, f"ended {final_status}, not SUCCEEDED")
+                Violation(seed, resource_id, f"ended {final_status}, not SUCCEEDED")
             )
         if final_status in UNCLAIMABLE_STATUSES:
             far_future = NOW + timedelta(days=365)
@@ -197,18 +243,25 @@ async def run_trial(seed: int) -> TrialResult:
             )
             if any(j.id == job.id for j in reclaimed):
                 result.violations.append(
-                    Violation(seed, allocation_id, "a terminal job was reclaimed later")
+                    Violation(seed, resource_id, "a terminal job was reclaimed later")
                 )
 
     return result
 
 
-async def test_real_adapter_holds_exactly_once_under_crash_injection() -> None:
-    trials = 200
-    results = [await run_trial(seed) for seed in range(trials)]
+async def _run_all(kind: ResourceKind, trials: int) -> None:
+    results = [await run_trial(seed, kind) for seed in range(trials)]
 
     violations = [v for r in results for v in r.violations]
     assert not violations, "\n".join(str(v) for v in violations)
 
     total_jobs = sum(r.jobs for r in results)
     assert total_jobs >= trials * 2
+
+
+async def test_address_adapter_holds_exactly_once_under_crash_injection() -> None:
+    await _run_all("address", trials=200)
+
+
+async def test_instance_adapter_holds_exactly_once_under_crash_injection() -> None:
+    await _run_all("instance", trials=200)
