@@ -89,7 +89,9 @@ unassociated Elastic IP addresses and stops idle EC2 instances, earning exactly-
 own error and state semantics instead of either
 ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md),
 [0022](docs/adr/0022-idle-instance-detection.md)) - four genuinely different Adapter shapes, one
-core. Every detector can also ask an LLM for a second opinion on a proposal before a human sees
+core, and a real AWS client behind the same interface as the zero-setup fake one
+([ADR-0024](docs/adr/0024-real-aws-client.md)). Every detector can also ask an LLM for a second
+opinion on a proposal before a human sees
 it, always advisory, never a decision
 ([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md),
 [0023](docs/adr/0023-critic-on-every-detector.md)) - `cloud-waste/` is the one place that opinion

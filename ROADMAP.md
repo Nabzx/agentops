@@ -170,17 +170,22 @@ Snapshot exactly like `cloud-waste` already did, and both demos wire in `FakeCri
 rather than moving into core - `ephor` itself still has zero paid-vendor dependencies, and no
 other flagship has a real Critic option wired in yet.
 
+**A real AWS client is built** ([ADR-0024](docs/adr/0024-real-aws-client.md), closing #78 and #80):
+`AwsCloudClient` wraps real `boto3` EC2/CloudWatch calls behind the existing `CloudClient`
+Protocol, alongside `FakeCloudClient` (still the default everywhere). Reads/writes the existing
+`Instance`/`avg_cpu_percent`/`avg_network_bytes` shape unchanged - AWS's real "≥4-of-14-days"
+low-utilisation algorithm stays a named, deferred v1.1, not built now. Credentials resolve through
+`boto3`'s own default chain, never a project-specific secrets class; `DryRun` gates both mutating
+calls whenever `allow_live=False` (always, everywhere in this repo). Tested against `moto`'s
+simulated AWS backend, never a live account; never invoked with real credentials by anything in
+this repo, same restriction as every other real client (`StripeTestModeClient`, the planned real
+chain client, `ClaudeCritic`).
+
 ---
 
 ## Open decisions (Wayfinder map)
 
-None left blocking either track. **A real AWS client for `cloud-waste`**
-([ADR-0024](docs/adr/0024-real-aws-client.md), grilled and locked) is `ready-for-agent` as **#80**:
-`AwsCloudClient` reads/writes the existing `Instance`/`avg_cpu_percent`/`avg_network_bytes` shape
-unchanged - AWS's real "≥4-of-14-days" low-utilisation algorithm stays a named, deferred v1.1, not
-built now; tested against `moto`'s simulated AWS backend, never a live account; never invoked with
-real credentials by anything in this repo, same restriction as every other real client. Nothing
-else is queued right now.
+None left blocking either track, and nothing queued right now.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
