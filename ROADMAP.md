@@ -174,14 +174,13 @@ other flagship has a real Critic option wired in yet.
 
 ## Open decisions (Wayfinder map)
 
-**A real AWS client for `cloud-waste`** ([ADR-0024](docs/adr/0024-real-aws-client.md), researched,
-not yet grilled) - API mapping and credentials are settled; three real open questions before this
-is `ready-for-agent`: whether to build the real client around AWS's actual "≥4-of-14-days"
-low-utilisation algorithm (a real shape change to already-shipped `Instance`/`detector.py`) or
-keep the current single-average check as a documented v1 simplification; `moto` vs.
-hand-monkeypatching `boto3` for tests; and whether the maintainer wants to spend anything running
-this for real, since even a read is a billable AWS API call, unlike Stripe's free test-mode API.
-Nothing else is queued right now.
+None left blocking either track. **A real AWS client for `cloud-waste`**
+([ADR-0024](docs/adr/0024-real-aws-client.md), grilled and locked) is `ready-for-agent` as **#80**:
+`AwsCloudClient` reads/writes the existing `Instance`/`avg_cpu_percent`/`avg_network_bytes` shape
+unchanged - AWS's real "≥4-of-14-days" low-utilisation algorithm stays a named, deferred v1.1, not
+built now; tested against `moto`'s simulated AWS backend, never a live account; never invoked with
+real credentials by anything in this repo, same restriction as every other real client. Nothing
+else is queued right now.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),

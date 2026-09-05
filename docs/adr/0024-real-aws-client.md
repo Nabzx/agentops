@@ -1,8 +1,8 @@
 # 0024. A real AWS client: API mapping, credentials, testing - and a real gap in ADR-0022's threshold
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-05
-- **Driven by:** #78 (`wayfinder:research`)
+- **Driven by:** #78 (`wayfinder:research`), grilled with the maintainer in one round
 
 ## Context
 
@@ -106,32 +106,42 @@ dependency; hand-monkeypatching keeps zero new dependencies but tests less of `b
 plumbing. Left open for the grilling round (item 2) rather than decided here, since it's a real
 choice with a real cost either way, not a mechanical follow-on from ADR-0013.
 
-## Open questions for a grilling round (not decided here)
+## Grilled and locked
 
-1. **Faithful "≥4-of-14-days" algorithm vs. keep the current single-average check as a documented
-   v1 simplification** (finding 3/4) - and if faithful, `Instance`/`IdleInstanceCandidate`/
-   `detector.py` (all already shipped, tested, fake-only) need real shape changes: per-day
-   CPU/network booleans or a day-count, not one scalar pair. This is the one finding here that
-   touches already-merged code, not just new code for the real client.
-2. **`moto` vs. hand-monkeypatching `boto3`** for testing the real client without a live account
-   (finding 9) - a real new-dependency-vs-plumbing-coverage trade-off.
-3. Whether the maintainer wants to spend anything at all running this for real, even against a
-   personal AWS account - same question ADR-0021 asked about the Critic, asked here for the first
-   time about AWS: every real API call this makes, including reads, is a genuinely billable (if
-   typically fractions-of-a-cent) AWS API call against whoever's account the credentials point to,
-   unlike Stripe's fully free test-mode API. `FakeCloudClient` stays the only thing any test, demo,
-   or CI job in this repo talks to either way.
+1. **Keep the single-average check as a documented v1 simplification - do not reshape
+   `Instance`/`IdleInstanceAdapter`/`detector.py`.** Already-shipped, chaos-tested,
+   security-benchmarked code stays untouched; the real client reads/writes the exact same
+   `avg_cpu_percent`/`avg_network_bytes` shape `FakeCloudClient` already does. ADR-0022's "mirroring
+   AWS's own published Trusted Advisor convention" wording overclaims given finding 3 and should be
+   softened to "inspired by" the next time that ADR or `client.py`'s docstrings are touched - not a
+   correctness bug in shipped behaviour, a documentation-precision fix. A faithful `≥4-of-14-days`
+   implementation stays a named, real v1.1-of-the-real-client candidate, deferred on the same terms
+   ADR-0011/0020 deferred their own narrower-v1 cuts - not dropped.
+2. **`moto` for testing, not hand-monkeypatching.** `cloud-waste` gets `moto` as a dev-only
+   dependency; the real client's tests run against `moto`'s simulated EC2/CloudWatch backend, never
+   a live account, never in a way that needs real credentials to exist even once (unlike VCR-style
+   cassettes, which ADR-0013 already rejected for exactly that reason).
+3. **Build it, never use it - the same restriction as every other real client in this project.**
+   `AwsCloudClient` gets built for real, wired correctly against real `boto3` calls, structurally
+   tested via `moto` - but it is never invoked with real credentials by any test, CI job, or by the
+   agent building it. `FakeCloudClient` stays the only thing any test, demo, or CI job in this repo
+   talks to. Whether a real profile or role ever gets set is entirely the maintainer's call, made
+   later - identical to `StripeTestModeClient`, the planned real chain client, and `ClaudeCritic`.
 
 ## Consequences
 
-- Not `ready-for-agent` yet - the three open questions above need a grilling round first, the same
-  shape ADR-0021 went through before its own build issue was filed.
-- If accepted as researched: `boto3` becomes a dependency of `cloud-waste` only, `moto` becomes a
-  `cloud-waste` dev-only dependency if item 2 is decided that way; no change to `ephor`,
-  `stripe-recovery`, or `wallet-guard`.
+- Unblocks a `ready-for-agent` build issue for `AwsCloudClient` itself - filed as a follow-up,
+  since this ADR is the research-and-decision output, not the build.
+- `boto3` becomes a dependency of `cloud-waste` only; `moto` becomes a `cloud-waste` dev-only
+  dependency. No change to `ephor`, `stripe-recovery`, or `wallet-guard`.
+- `Instance`, `IdleInstanceAdapter`, and `scan_for_idle_instances` are unaffected - the real client
+  is a new implementation of the existing `CloudClient` Protocol, not a shape change to it.
+- ADR-0022's "mirrors AWS's own published Trusted Advisor convention" phrasing is now known to
+  overclaim (finding 3) - worth softening next time that ADR or `client.py` is touched, not urgent
+  enough to warrant touching shipped code solely for a docstring.
 - `README.md`'s "no paid API" line, already carrying one precise exception for the Critic
-  (ADR-0021/0023), would need a second, distinctly-worded one here if this is ever built and used
-  for real: not "costs money per call" the way an LLM does, but "makes real, billable AWS API
-  calls against a real account" - a different kind of real than either the Critic or Stripe's fully
-  free test-mode API.
-- `docs/adr/README.md`'s index gets a new row, status `Proposed` until grilled.
+  (ADR-0021/0023), will need a second, distinctly-worded one once this is actually used for real:
+  not "costs money per call" the way an LLM does, but "makes real, billable AWS API calls against a
+  real account" - a different kind of real than either the Critic or Stripe's fully free test-mode
+  API. Not needed yet, since nothing in this repo invokes it for real.
+- `docs/adr/README.md`'s index status updates to `Accepted`.
