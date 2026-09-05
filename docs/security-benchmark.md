@@ -12,8 +12,8 @@ on every CI run. Regenerate this file by re-running the script - it isn't hand-e
 
 | | |
 | --- | --- |
-| Cases run | 7 |
-| Defended | 6 |
+| Cases run | 9 |
+| Defended | 8 |
 | Known limitations (honestly demonstrated) | 1 |
 | Stale (no longer match their write-up) | **0** |
 
@@ -32,6 +32,8 @@ design document.
 | `executed-approval-immutable` | access-control | ✓ | EXECUTED -> APPROVED correctly rejected by the state machine |
 | `non-idempotent-adapter-never-auto-retried` | exactly-once | ✓ | never claimable, never auto-retried - routed to a human instead |
 | `duplicate-idempotency-key-rejected` | idempotency | ✓ | DuplicateIdempotencyKeyError raised - the second job was rejected |
+| `tampered-critique-detected` | llm-critic | ✓ | SnapshotError raised - the tampered critique was caught |
+| `critique-content-cannot-skip-approval-state-machine` | llm-critic | ✓ | request started PENDING and PENDING -> EXECUTED is still rejected - the injected critique text had no effect on approval state |
 
 ## Known limitations
 
