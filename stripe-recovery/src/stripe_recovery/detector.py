@@ -6,6 +6,12 @@ they don't fit ``ApprovalRequest.subject_id: uuid.UUID | None``. Rather than cha
 core type for one detector, the charge id lives in the Snapshot instead (exactly what
 an opaque, detector-defined Snapshot is for, per ADR-0008) - ``subject_type`` alone
 ("stripe_charge") is enough to say what kind of thing this is about.
+
+An optional ``Critic`` (ADR-0021, extended to every detector by ADR-0023) adds a
+second opinion to the Snapshot before it's hashed - ``FakeCritic`` by default, so
+nothing here changes unless a caller opts in. The decline-code allow-list is still
+the entire condition for whether to propose at all; the Critic never gets a vote on
+that, only on what a human sees alongside it.
 """
 
 from __future__ import annotations
@@ -16,6 +22,7 @@ from datetime import datetime
 
 from ephor.actions import Proposal, ProposalStore
 from ephor.approvals import ApprovalRequest, ApprovalStore
+from ephor.critic import Critic
 
 from stripe_recovery.client import RETRYABLE_DECLINE_CODES, StripeClient
 
@@ -34,6 +41,7 @@ async def scan_for_recoverable_charges(
     requester_id: uuid.UUID,
     now: datetime,
     expires_at: datetime,
+    critic: Critic | None = None,
 ) -> list[RecoveryCandidate]:
     """Scan once, propose a retry for every charge whose decline code is retryable."""
     found: list[RecoveryCandidate] = []
@@ -51,7 +59,7 @@ async def scan_for_recoverable_charges(
             },
             created_at=now,
         )
-        snapshot = {
+        snapshot: dict[str, object] = {
             "action_type": "retry_charge",
             "charge_id": charge.id,
             "customer_id": charge.customer_id,
@@ -62,6 +70,15 @@ async def scan_for_recoverable_charges(
                 "allow-list (ADR-0011)"
             ),
         }
+        if critic is not None:
+            critique = await critic.critique(
+                {
+                    "charge_id": charge.id,
+                    "amount_pence": charge.amount_pence,
+                    "decline_code": charge.decline_code,
+                }
+            )
+            snapshot["llm_critique"] = critique.as_snapshot_field()
         approval = await approvals.create(
             proposal_id=proposal.id,
             subject_type="stripe_charge",

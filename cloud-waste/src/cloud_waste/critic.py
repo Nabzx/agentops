@@ -1,32 +1,24 @@
-"""The Critic seam: an LLM's second opinion on a proposal, per ADR-0021.
+"""The one real, paid Critic implementation, per ADR-0021.
 
-A Critic never touches what gets proposed, only whether a human should hesitate over
-it - it is always advisory, and can never auto-approve or auto-reject anything
-(ADR-0021 point 3; the same "human is always the actual gate" rule every approval
-already holds, per ADR-0009). Its output is stored verbatim in the detector's
-Snapshot (``Critique.as_snapshot_field()``), so it's part of the same hashed,
-tamper-evident record as the proposal itself - no change needed to
-``ephor.approvals``/``ephor.actions``/``ephor.effects`` (ADR-0021 point 2).
-
-``FakeCritic`` is the only thing any test, demo, or CI job in this repo talks to.
-``ClaudeCritic`` is built for real, using the real ``anthropic`` SDK, wired correctly
-end to end - but it is never invoked with a real API key by anything in this repo,
-and no test here ever makes a live call to it. Whether and when a real key ever gets
-set is the maintainer's call, made separately (ADR-0021's explicit "build it, don't
-spend on it" constraint).
+``Critique``, the ``Critic`` Protocol, and ``FakeCritic`` moved into ``ephor.critic``
+once a second and third detector wanted the same seam (ADR-0023) - ``ClaudeCritic``
+stays here deliberately, so ``ephor`` itself never gains ``anthropic`` as a
+dependency. ``ClaudeCritic`` is built for real, using the real ``anthropic`` SDK,
+wired correctly end to end - but it is never invoked with a real API key by anything
+in this repo, and no test here ever makes a live call to it. Whether and when a real
+key ever gets set is the maintainer's call, made separately (ADR-0021's explicit
+"build it, don't spend on it" constraint).
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from typing import Any, Literal, Protocol
+from typing import Any
 
 import anthropic
+from ephor.critic import Critique
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-Recommendation = Literal["proceed", "hesitate"]
 
 # The tool a real Critic is forced to call, so its answer always parses - not a
 # format the model might drift away from, a specific function call it must make.
@@ -47,59 +39,6 @@ _CRITIQUE_INPUT_SCHEMA: dict[str, Any] = {
     },
     "required": ["concerns", "recommendation", "reasoning"],
 }
-
-
-@dataclass(frozen=True)
-class Critique:
-    """One Critic's second opinion on a proposal - always advisory, never a
-    decision. ``model`` records which Critic produced it (``"fake"`` for
-    ``FakeCritic``), for audit transparency.
-    """
-
-    concerns: list[str]
-    recommendation: Recommendation
-    reasoning: str
-    model: str
-
-    def as_snapshot_field(self) -> dict[str, object]:
-        """The plain-dict shape this goes into ``snapshot_json`` as - ADR-0008's
-        opaque Snapshot doesn't know or care what a Critique is, only that it's
-        JSON-safe.
-        """
-        return {
-            "concerns": self.concerns,
-            "recommendation": self.recommendation,
-            "reasoning": self.reasoning,
-            "model": self.model,
-        }
-
-
-class Critic(Protocol):
-    """The interface the detector talks to. A real implementation wraps a real LLM
-    behind this same shape - vendor-agnostic, same pattern as ``ChainClient`` naming
-    no specific chain.
-    """
-
-    async def critique(self, evidence: dict[str, object]) -> Critique: ...
-
-
-class FakeCritic:
-    """Deterministic, canned - no real reasoning at all. The only Critic any test,
-    demo, or CI job in this repo talks to (ADR-0021).
-    """
-
-    def __init__(self, response: Critique | None = None) -> None:
-        self._response = response or Critique(
-            concerns=[],
-            recommendation="proceed",
-            reasoning=(
-                "fake critic - no real reasoning, always returns this canned response"
-            ),
-            model="fake",
-        )
-
-    async def critique(self, evidence: dict[str, object]) -> Critique:
-        return self._response
 
 
 class ClaudeCriticSettings(BaseSettings):

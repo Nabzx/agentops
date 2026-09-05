@@ -2,7 +2,8 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from ephor.actions import InMemoryProposalStore
-from ephor.approvals import ApprovalStatus, InMemoryApprovalStore
+from ephor.approvals import ApprovalStatus, InMemoryApprovalStore, verify_snapshot
+from ephor.critic import FakeCritic
 
 from wallet_guard.client import INFINITE_ALLOWANCE, FakeChainClient, TokenApproval
 from wallet_guard.detector import RevocationCandidate, scan_for_risky_approvals
@@ -12,7 +13,9 @@ REQUESTER = uuid.uuid4()
 OWNER = "0xOwner"
 
 
-async def _scan(client: FakeChainClient) -> list[RevocationCandidate]:
+async def _scan(
+    client: FakeChainClient, critic: FakeCritic | None = None
+) -> list[RevocationCandidate]:
     return await scan_for_risky_approvals(
         client,
         InMemoryProposalStore(),
@@ -21,6 +24,7 @@ async def _scan(client: FakeChainClient) -> list[RevocationCandidate]:
         requester_id=REQUESTER,
         now=NOW,
         expires_at=NOW + timedelta(hours=48),
+        critic=critic,
     )
 
 
@@ -92,6 +96,48 @@ async def test_proposal_and_approval_are_linked_by_id() -> None:
     )
     [candidate] = await _scan(client)
     assert candidate.approval.proposal_id == candidate.proposal.id
+
+
+async def test_no_critic_means_no_critique_in_the_snapshot() -> None:
+    """The default, unchanged path - nothing here should ever surprise an existing
+    caller that doesn't pass a critic (ADR-0021/ADR-0023).
+    """
+    client = FakeChainClient(
+        [
+            TokenApproval(
+                id="appr_1",
+                owner_address=OWNER,
+                token_address="0xA",
+                token_symbol="USDC",
+                spender_address="0xSpender",
+                allowance=INFINITE_ALLOWANCE,
+            )
+        ]
+    )
+    [candidate] = await _scan(client)
+    assert "llm_critique" not in candidate.approval.snapshot_json
+
+
+async def test_a_critic_adds_its_critique_to_the_hashed_snapshot() -> None:
+    client = FakeChainClient(
+        [
+            TokenApproval(
+                id="appr_1",
+                owner_address=OWNER,
+                token_address="0xA",
+                token_symbol="USDC",
+                spender_address="0xSpender",
+                allowance=INFINITE_ALLOWANCE,
+            )
+        ]
+    )
+    [candidate] = await _scan(client, critic=FakeCritic())
+    critique = candidate.approval.snapshot_json["llm_critique"]
+    assert isinstance(critique, dict)
+    assert critique["recommendation"] == "proceed"
+    assert critique["model"] == "fake"
+    # Part of the same hashed record as the proposal itself (ADR-0021 point 2).
+    verify_snapshot(candidate.approval.snapshot_json, candidate.approval.snapshot_hash)
 
 
 async def test_a_different_owners_approvals_are_never_scanned() -> None:

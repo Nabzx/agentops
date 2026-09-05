@@ -4,6 +4,10 @@ Run with: ``uv run python -m stripe_recovery.demo``
 
 No network access, no Stripe account, nothing real. This is what Phase 1 of the
 ROADMAP calls "a short script [that] proves the loop with the mock adapter."
+
+Wires in a ``FakeCritic`` (ADR-0021, extended here by ADR-0023) to prove the same
+optional-second-opinion shape ``cloud-waste`` already demonstrates. No real,
+paid Critic is wired into this demo - that stays scoped to ``cloud-waste`` alone.
 """
 
 from __future__ import annotations
@@ -16,6 +20,7 @@ from datetime import UTC, datetime, timedelta
 from ephor.actions import InMemoryProposalStore
 from ephor.approvals import ApprovalStatus, InMemoryApprovalStore
 from ephor.audit import InMemoryAuditStore
+from ephor.critic import FakeCritic
 from ephor.outbox import InMemoryOutboxStore
 
 from stripe_recovery.adapter import StripeAdapter
@@ -61,6 +66,15 @@ def _build_client() -> StripeClient:
     )
 
 
+def _print_critique(snapshot: dict[str, object]) -> None:
+    critique = snapshot.get("llm_critique")
+    if isinstance(critique, dict):
+        print(
+            f"     critic ({critique['model']}) says: {critique['recommendation']}"
+            f" - {critique['reasoning']}"
+        )
+
+
 async def main() -> None:
     now = datetime.now(UTC)
     client = _build_client()
@@ -78,6 +92,7 @@ async def main() -> None:
         requester_id=REQUESTER_ID,
         now=now,
         expires_at=now + timedelta(hours=48),
+        critic=FakeCritic(),
     )
     print(f"1. scanned Stripe -> {len(candidates)} recoverable charge(s) proposed")
     for c in candidates:
@@ -87,6 +102,7 @@ async def main() -> None:
             f"£{amount_pence / 100:.2f} "
             f"({c.approval.snapshot_json['decline_code']})"
         )
+        _print_critique(c.approval.snapshot_json)
 
     if not candidates:
         print(
