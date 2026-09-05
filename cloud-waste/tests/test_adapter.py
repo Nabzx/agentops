@@ -1,10 +1,16 @@
 from datetime import UTC, datetime
 
 import pytest
-from ephor.effects import PermanentEffectError
+from ephor.effects import PermanentEffectError, RetryableEffectError
 
 from cloud_waste.adapter import CloudWasteAdapter, IdleInstanceAdapter
-from cloud_waste.client import ElasticIp, FakeCloudClient, Instance
+from cloud_waste.client import (
+    ElasticIp,
+    FakeCloudClient,
+    Instance,
+    LiveActionsDisabledError,
+    TransientCloudError,
+)
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -179,3 +185,62 @@ async def test_idle_execute_raises_permanent_error_for_an_unknown_instance() -> 
 
 def test_idle_instance_adapter_declares_itself_idempotent() -> None:
     assert IdleInstanceAdapter.is_idempotent is True
+
+
+# --- classifying AwsCloudClient's real-only exceptions (ADR-0024) ---------------------
+#
+# FakeCloudClient never raises either of these - only AwsCloudClient does, and nothing
+# in this repo ever runs that with real credentials (ADR-0024 grilled item 3). Tested
+# here with a minimal stub so the classification logic itself is proven regardless.
+
+
+class _LiveDisabledClient(FakeCloudClient):
+    async def release_address(
+        self, allocation_id: str, *, idempotency_key: str
+    ) -> ElasticIp:
+        raise LiveActionsDisabledError("would have succeeded, allow_live=False")
+
+    async def stop_instance(
+        self, instance_id: str, *, idempotency_key: str
+    ) -> Instance:
+        raise LiveActionsDisabledError("would have succeeded, allow_live=False")
+
+
+class _TransientErrorClient(FakeCloudClient):
+    async def release_address(
+        self, allocation_id: str, *, idempotency_key: str
+    ) -> ElasticIp:
+        raise TransientCloudError("throttled")
+
+    async def stop_instance(
+        self, instance_id: str, *, idempotency_key: str
+    ) -> Instance:
+        raise TransientCloudError("throttled")
+
+
+async def test_execute_raises_permanent_error_when_live_actions_are_disabled() -> None:
+    adapter = CloudWasteAdapter(_LiveDisabledClient())
+    with pytest.raises(PermanentEffectError):
+        await adapter.execute(_action(), "key-1")
+
+
+async def test_execute_raises_retryable_error_for_a_transient_cloud_failure() -> None:
+    adapter = CloudWasteAdapter(_TransientErrorClient())
+    with pytest.raises(RetryableEffectError):
+        await adapter.execute(_action(), "key-1")
+
+
+async def test_idle_execute_raises_permanent_error_when_live_actions_are_disabled() -> (
+    None
+):
+    adapter = IdleInstanceAdapter(_LiveDisabledClient())
+    with pytest.raises(PermanentEffectError):
+        await adapter.execute(_instance_action(), "key-1")
+
+
+async def test_idle_execute_raises_retryable_error_for_a_transient_cloud_failure() -> (
+    None
+):
+    adapter = IdleInstanceAdapter(_TransientErrorClient())
+    with pytest.raises(RetryableEffectError):
+        await adapter.execute(_instance_action(), "key-1")
