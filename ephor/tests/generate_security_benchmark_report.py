@@ -15,7 +15,13 @@ from tests.security_benchmark import BenchmarkCase, CaseResult, run_all
 
 REPORT_PATH = Path(__file__).resolve().parents[2] / "docs" / "security-benchmark.md"
 
-CATEGORY_ORDER = ["access-control", "audit-integrity", "exactly-once", "idempotency"]
+CATEGORY_ORDER = [
+    "access-control",
+    "audit-integrity",
+    "exactly-once",
+    "idempotency",
+    "llm-critic",
+]
 
 
 async def _main() -> None:

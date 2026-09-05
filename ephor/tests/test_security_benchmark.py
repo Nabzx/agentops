@@ -30,6 +30,7 @@ def test_every_category_has_at_least_one_case() -> None:
         "audit-integrity",
         "exactly-once",
         "idempotency",
+        "llm-critic",
     }
 
 

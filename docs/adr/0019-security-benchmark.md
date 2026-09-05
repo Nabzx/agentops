@@ -66,3 +66,18 @@ a defended case failing.**
 - The lying-adapter limitation stands as the honest boundary of what this core
   claims: Adapter honesty about its own idempotency is trusted, not verified, and
   cannot be, without a mechanism this project hasn't built and isn't proposing here.
+
+## Update, 2026-09-05 (ADR-0023 follow-up)
+
+Once the Critic moved into `ephor.critic` and became available to every detector
+(ADR-0023), the benchmark gained a fifth category, **llm-critic**, with two new
+defended cases: `tampered-critique-detected` (flipping a critique's recommendation
+after the fact is caught by the same `verify_snapshot` check as any other tampered
+Snapshot field) and `critique-content-cannot-skip-approval-state-machine` (an
+adversarial critique crafted to look like an instruction has zero effect -
+`ApprovalStore.create()` always starts a request at `PENDING` regardless of Snapshot
+content, and a `Critique` is a disconnected value type with no reference to any store
+or transition method). Both prove ADR-0021 point 3's "advisory-only, never a veto"
+claim structurally, the same way every other case in this benchmark proves its own
+claim by demonstration rather than assertion. Now 9 cases, 8 defended, 1 known
+limitation, 0 stale.
