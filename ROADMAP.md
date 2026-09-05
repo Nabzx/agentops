@@ -185,7 +185,16 @@ chain client, `ClaudeCritic`).
 
 ## Open decisions (Wayfinder map)
 
-None left blocking either track, and nothing queued right now.
+**Positioning ephor as "the open-source Salus"** ([ADR-0025](docs/adr/0025-toward-open-source-salus.md),
+researched, not yet grilled) - the maintainer's own direction, prompted by Salus (YC W26): a
+closed-source runtime guardrails proxy that intercepts agent tool calls, checks policy, and
+returns structured feedback so the agent can self-correct. Real overlap with this project's most
+proven guarantee (idempotency is one of Salus's own named features); real, found-not-assumed
+gaps too. Four open questions before this is `ready-for-agent`: whether ADR-0009's own "a human
+is always the actual gate" principle changes or stays absolute with auto-decide as a separate
+opt-in layer; which policy engine (Rego, Cedar, or homegrown); how much of the proxy/integration
+surface is v1 scope; and whether the pitch itself is "the open-source Salus" or a narrower,
+still-true claim. Nothing else is queued right now.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
