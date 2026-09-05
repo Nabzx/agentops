@@ -189,25 +189,30 @@ self-hostable, provably-exactly-once alternative to Salus" (YC W26, a closed-sou
 guardrails proxy). Four decisions locked, four sequenced units of work - each depends on the one
 before it, so this phase runs in order, not in parallel.
 
-- [ ] **6.1** - `ephor.policy`: a Cedar-backed policy engine, in core (#85). AWS Cedar chosen for
-      what it is - formally-verified authorization semantics, official Python bindings, no
-      external binary - not just convenience. Cedar is free and local, so it lives in core the
+- [ ] **6.1** - `ephor.policy`: a Cedar-backed policy engine, in core (#85, tracking epic - broken
+      into #90 the Protocol/dataclass, #91 `FakePolicyEngine`, #92 `CedarPolicyEngine`). AWS Cedar
+      chosen for what it is - formally-verified authorization semantics, official Python bindings,
+      no external binary - not just convenience. Cedar is free and local, so it lives in core the
       same way `ephor.critic` does, not gated behind a paid-vendor line the way `ClaudeCritic` is.
-- [ ] **6.2** - the opt-in auto-decide layer on `ephor.approvals` (#86). ADR-0009's own principle
-      stays absolute: every existing detector, and any action-type nobody deliberately opts in,
-      remains exactly as human-gated as it is today. A caller explicitly configures specific
-      action-types to route through policy instead - both directions (confident allow, confident
-      block-with-reason), always fully audited (`actor_role="policy"`), never a silent default
-      either way when the policy has no confident answer.
-- [ ] **6.3** - a synchronous decide-and-explain API (#87): the actual retry-feedback loop -
-      propose, decide now, return a structured reason immediately, usable standalone by anything
-      that calls it directly.
+- [ ] **6.2** - the opt-in auto-decide layer on `ephor.approvals` (#86, tracking epic - broken into
+      #93 the opt-in registry, #94 the auto-approve path, #95 the auto-reject path/`no_decision`
+      fallback/new security-benchmark cases). ADR-0009's own principle stays absolute: every
+      existing detector, and any action-type nobody deliberately opts in, remains exactly as
+      human-gated as it is today. A caller explicitly configures specific action-types to route
+      through policy instead - both directions (confident allow, confident block-with-reason),
+      always fully audited (`actor_role="policy"`), never a silent default either way when the
+      policy has no confident answer.
+- [ ] **6.3** - a synchronous decide-and-explain API (#87, tracking epic - broken into #96 the
+      `decide()` function, #97 a runnable demo + end-to-end tests): the actual retry-feedback
+      loop - propose, decide now, return a structured reason immediately, usable standalone by
+      anything that calls it directly.
 - [ ] **6.4** - the OpenAI-compatible proxy shim - the one genuinely novel, unproven-in-this-project
       technique (intercepting and rewriting a live LLM API response mid-flight so a client-side
       tool call never reaches the calling framework at all). Scoped as research first (#88), not
       assumed straight into a build - the real question is how a pure "swap your `base_url`"
       integration can stop *client-side* tool execution, verified against a real framework's
-      actual behaviour, not inferred from Salus's own marketing copy.
+      actual behaviour, not inferred from Salus's own marketing copy. Its own breakdown into
+      build-sized issues waits until that research resolves.
 
 **Done when:** a real agent framework can point its `base_url` at ephor's proxy, have a policy
 confidently block or allow a tool call with zero human involvement, see a structured reason if
