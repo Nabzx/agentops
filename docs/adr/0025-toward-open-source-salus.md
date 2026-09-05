@@ -1,8 +1,8 @@
 # 0025. Toward "the open-source Salus": auto-decide, retry-feedback, a policy DSL, a proxy
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-05
-- **Driven by:** #83 (`wayfinder:research`)
+- **Driven by:** #83 (`wayfinder:research`), grilled with the maintainer in one round
 
 ## Context
 
@@ -76,34 +76,54 @@ generalised into data instead of code): zero new dependencies, matches this proj
 minimalism, but reinvents a smaller, less portable version of what Rego/Cedar already do well.
 Left open, not decided here - a real three-way trade-off.
 
-## Open questions for a grilling round (not decided here)
+## Grilled and locked
 
-1. **Does ADR-0009's own stated principle change, or does auto-decide live entirely in a new,
-   opt-in layer?** Two honest options: (a) rewrite the project's framing from "a human is always
-   the actual gate" to "a human is the gate for anything policy doesn't confidently allow" - a
-   real, deliberate reversal for the common case, or (b) keep "a human is always the actual gate"
-   as this project's own unconditional promise, and build the policy/auto-decide layer as a
-   distinct, clearly-labelled opt-in a caller must deliberately reach for - closer to how
-   `ClaudeCritic` is real but never defaulted-to. These produce genuinely different README
-   headlines, not just different code.
-2. **Which policy engine**: Rego, Cedar, or a minimal homegrown format - and how much of Salus's
-   own feature list (PII detection, budget/loop protection, evals) is in scope for v1 versus named
-   and deferred.
-3. **How much of "the proxy" is v1 scope.** A narrow, real slice (the retry-feedback API + policy
-   engine, usable by anything that calls it directly) versus the full "endpoint URL swap, works
-   across OpenAI/Anthropic/LangChain" integration surface Salus itself ships - the latter is
-   plausibly its own multi-package effort, not one unit of work.
-4. **Positioning itself**: "the open-source Salus" as the literal pitch, or "the audited,
-   exactly-once execution layer a Salus-style proxy could be built on" - a narrower, still-true
-   claim that doesn't require matching Salus's UX one-for-one. This is the same shape of call
-   ADR-0014 made for product direction, not something to decide by momentum.
+1. **ADR-0009's principle stays absolute. Auto-decide is a new, separate, opt-in layer, never the
+   default.** Every existing detector, and any action-type nobody has deliberately opted in,
+   remains exactly as human-gated as it is today - zero behaviour change. A caller explicitly
+   configures specific action-types to route through the new policy layer instead; every
+   auto-decision still lands in the same hash-chained audit trail, `actor_role="policy"`,
+   `actor_id=None`, fully visible and reversible-by-audit even though no human clicked anything.
+   This is not behind Salus's own model either - Salus itself supports human-in-the-loop
+   escalation as one path, not pure auto-decide only. The auto-decide layer handles **both
+   directions** - a confident allow *and* a confident block-with-reason - for whatever's opted in;
+   anything the policy doesn't confidently decide either way falls through to a human exactly as
+   today, never guessed at.
+2. **Policy engine: AWS Cedar**, chosen for what it actually is, not just convenience: its
+   authorization semantics are formally verified (a real, citable rigor claim fitting this
+   project's own chaos-tested, security-benchmarked character), it ships official Python bindings
+   (`cedar-policy` on PyPI, no external binary or WASM step), and it's purpose-built for
+   authorization decisions specifically (default-deny, forbid-wins-over-permit, no side effects) -
+   the same engine AWS shipped inside Bedrock AgentCore Policy for this exact
+   agent-tool-call-interception shape of problem. Lives in **`ephor.policy`, in core** - not
+   vendor-specific or paid the way `ClaudeCritic` is (ADR-0023 kept `anthropic` out of core for
+   exactly that reason); Cedar is free, local, has no credential/cost gate to hold it back from,
+   and the whole point of this layer is that any future detector can opt in the same way any
+   detector already can use `ephor.critic`.
+3. **The proxy is real v1 scope, not deferred** - at least one working integration (an
+   OpenAI-chat-completions-compatible endpoint a caller points their `base_url` at) ships in this
+   wave, not a named-later v2. This is a materially bigger scope than a narrow "just the API"
+   cut - four sequenced units of work, not one (see Consequences).
+4. **Positioning: "the open-source, self-hostable, provably-exactly-once alternative to Salus"**
+   - not the literal "we are Salus" claim, and not merely "a layer Salus-style tooling could run
+   on." What makes this an honest *stronger* claim rather than hype: fully open and self-hostable
+   (versus a closed API to trust blindly), a 50,000-trial chaos-tested exactly-once guarantee and
+   a named, scored security benchmark (versus asserted reliability), and - once Cedar lands -
+   formally-verified policy semantics. Not a claim to more maturity or more integrations than a
+   funded team with real customers; a claim to more provable rigor on specific, checkable axes.
 
 ## Consequences
 
-- Not `ready-for-agent` yet - four real open questions, at least one of them (question 1)
-  touching this project's own foundational stated principle, need a grilling round first.
-- If pursued: likely multiple units of work, not one - a policy engine/DSL, a retry-feedback API
-  surface on top of the existing `Decision.reason` field, and (separately, larger) an actual
-  proxy/interception component - each probably its own ADR and build, the way Track A/B were
-  separate efforts here.
-- `docs/adr/README.md`'s index gets a new row, status `Proposed` until grilled.
+- Unblocks four sequenced `ready-for-agent`/`wayfinder:research` build issues, phased in
+  `ROADMAP.md`'s new Phase 6 - not one unit of work: (1) `ephor.policy`, the Cedar-backed policy
+  engine, in core; (2) the opt-in auto-decide layer wired onto `ephor.approvals`, both directions,
+  fully audited; (3) a synchronous decide-and-explain API on top of both; (4) the OpenAI-compatible
+  proxy shim itself - the one genuinely novel, unproven-in-this-project technique (intercepting
+  and rewriting a live LLM API response mid-flight), scoped as its own research pass before a
+  build issue, not assumed.
+- `ephor` gains its first new core dependency since `pydantic` (`cedar-policy`) - a deliberate,
+  reasoned addition (free, local, no credential/cost gate), not a repeat of the paid-vendor
+  question ADR-0021/0023 drew a hard line on.
+- `README.md`'s opening framing will need a real update once phase 6's first pieces ship - not
+  before; nothing changes about what this project claims until something backs the claim.
+- `docs/adr/README.md`'s index status updates to `Accepted`.

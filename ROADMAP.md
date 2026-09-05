@@ -181,20 +181,49 @@ simulated AWS backend, never a live account; never invoked with real credentials
 this repo, same restriction as every other real client (`StripeTestModeClient`, the planned real
 chain client, `ClaudeCritic`).
 
+## Phase 6 — Toward the open-source Salus
+
+Prompted by the maintainer's own direction, researched and grilled as
+[ADR-0025](docs/adr/0025-toward-open-source-salus.md): position `ephor` as "the open-source,
+self-hostable, provably-exactly-once alternative to Salus" (YC W26, a closed-source runtime
+guardrails proxy). Four decisions locked, four sequenced units of work - each depends on the one
+before it, so this phase runs in order, not in parallel.
+
+- [ ] **6.1** - `ephor.policy`: a Cedar-backed policy engine, in core (#85). AWS Cedar chosen for
+      what it is - formally-verified authorization semantics, official Python bindings, no
+      external binary - not just convenience. Cedar is free and local, so it lives in core the
+      same way `ephor.critic` does, not gated behind a paid-vendor line the way `ClaudeCritic` is.
+- [ ] **6.2** - the opt-in auto-decide layer on `ephor.approvals` (#86). ADR-0009's own principle
+      stays absolute: every existing detector, and any action-type nobody deliberately opts in,
+      remains exactly as human-gated as it is today. A caller explicitly configures specific
+      action-types to route through policy instead - both directions (confident allow, confident
+      block-with-reason), always fully audited (`actor_role="policy"`), never a silent default
+      either way when the policy has no confident answer.
+- [ ] **6.3** - a synchronous decide-and-explain API (#87): the actual retry-feedback loop -
+      propose, decide now, return a structured reason immediately, usable standalone by anything
+      that calls it directly.
+- [ ] **6.4** - the OpenAI-compatible proxy shim - the one genuinely novel, unproven-in-this-project
+      technique (intercepting and rewriting a live LLM API response mid-flight so a client-side
+      tool call never reaches the calling framework at all). Scoped as research first (#88), not
+      assumed straight into a build - the real question is how a pure "swap your `base_url`"
+      integration can stop *client-side* tool execution, verified against a real framework's
+      actual behaviour, not inferred from Salus's own marketing copy.
+
+**Done when:** a real agent framework can point its `base_url` at ephor's proxy, have a policy
+confidently block or allow a tool call with zero human involvement, see a structured reason if
+blocked, and every one of those decisions is sitting in the same hash-chained audit trail this
+project has proven at 50,000 chaos-test trials. `README.md`'s opening framing updates only once
+something ships to back it - not before.
+
 ---
 
 ## Open decisions (Wayfinder map)
 
-**Positioning ephor as "the open-source Salus"** ([ADR-0025](docs/adr/0025-toward-open-source-salus.md),
-researched, not yet grilled) - the maintainer's own direction, prompted by Salus (YC W26): a
-closed-source runtime guardrails proxy that intercepts agent tool calls, checks policy, and
-returns structured feedback so the agent can self-correct. Real overlap with this project's most
-proven guarantee (idempotency is one of Salus's own named features); real, found-not-assumed
-gaps too. Four open questions before this is `ready-for-agent`: whether ADR-0009's own "a human
-is always the actual gate" principle changes or stays absolute with auto-decide as a separate
-opt-in layer; which policy engine (Rego, Cedar, or homegrown); how much of the proxy/integration
-surface is v1 scope; and whether the pitch itself is "the open-source Salus" or a narrower,
-still-true claim. Nothing else is queued right now.
+None left blocking either track. Phase 6 (above) is grilled and locked
+([ADR-0025](docs/adr/0025-toward-open-source-salus.md)) with four sequenced issues filed - #85,
+#86, and #87 are `ready-for-agent`, each depending on the one before it; #88 (the proxy shim) is
+`wayfinder:research`, not yet a build, since the actual interception mechanism needs verifying,
+not assuming.
 
 Settled: **framework name** — **Ephor** ([ADR-0004](docs/adr/0004-name-the-core-ephor.md)),
 **exactly-once boundary** ([ADR-0005](docs/adr/0005-exactly-once-boundary.md)),
