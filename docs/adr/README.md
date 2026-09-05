@@ -35,3 +35,4 @@ is written here so the *why* survives and agents don't relitigate it.
 | [0022](0022-idle-instance-detection.md) | Idle-EC2-instance detection (v1.1): a real judgement call, and what the Critic is actually for | Accepted |
 | [0023](0023-critic-on-every-detector.md) | Broaden the Critic to every detector; move the seam into ephor core | Accepted |
 | [0024](0024-real-aws-client.md) | A real AWS client: API mapping, credentials, testing - and a real gap in ADR-0022's threshold | Accepted |
+| [0025](0025-toward-open-source-salus.md) | Toward "the open-source Salus": auto-decide, retry-feedback, a policy DSL, a proxy | Proposed |
