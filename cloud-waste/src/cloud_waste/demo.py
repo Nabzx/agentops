@@ -1,13 +1,20 @@
-"""The propose -> approve -> execute -> audit loop, end to end, on fake data - twice,
-once per resource type this package knows about.
+"""The propose -> approve -> execute -> audit loop, end to end, on fake data by
+default - twice, once per resource type this package knows about.
 
 Run with: ``uv run python -m cloud_waste.demo``
 
-No AWS account, no boto3, nothing real. Same shape as ``stripe_recovery.demo`` and
-``wallet_guard.demo`` - the point of this package is proving that shape holds for a
-third, genuinely different kind of Adapter, twice over.
+No AWS account, no boto3, nothing real, by default. Same shape as
+``stripe_recovery.demo`` and ``wallet_guard.demo`` - the point of this package is
+proving that shape holds for a third, genuinely different kind of Adapter, twice over.
 
-The Critic (ADR-0021) is opt-in the same way a real cloud/Stripe client is:
+The cloud client (ADR-0024) is opt-in the same way ``stripe-recovery``'s real client
+is: ``CLOUD_WASTE_AWS_REGION`` unset (the default, and always true in CI) means the
+zero-setup ``FakeCloudClient``, seeded below. Setting it means a real ``AwsCloudClient``
+against whatever's actually in that AWS account/region - ``allow_live`` still defaults
+to ``False`` even then, so nothing gets released or stopped for real without also
+passing ``allow_live=True`` explicitly, which nothing in this repo ever does.
+
+The Critic (ADR-0021, extended to every detector by ADR-0023) is opt-in the same way:
 ``EPHOR_CRITIC_API_KEY`` unset (the default, and always true in CI) means
 ``FakeCritic`` - no network call, no cost. Setting it means a real, paid call to
 Claude on every proposal scanned here.
@@ -28,7 +35,14 @@ from ephor.effects import Adapter, Effect
 from ephor.outbox import InMemoryOutboxStore
 
 from cloud_waste.adapter import CloudWasteAdapter, IdleInstanceAdapter
-from cloud_waste.client import ElasticIp, FakeCloudClient, Instance
+from cloud_waste.client import (
+    AwsCloudClient,
+    CloudClient,
+    CloudWasteAwsSettings,
+    ElasticIp,
+    FakeCloudClient,
+    Instance,
+)
 from cloud_waste.critic import ClaudeCritic, ClaudeCriticSettings
 from cloud_waste.detector import (
     scan_for_idle_instances,
@@ -47,6 +61,55 @@ def _build_critic() -> Critic:
         print("Using a real Claude critic (API key set via env - this costs money).\n")
         return ClaudeCritic(ClaudeCriticSettings.model_validate({}))
     return FakeCritic()
+
+
+def _build_client(now: datetime) -> CloudClient:
+    """Real AWS when CLOUD_WASTE_AWS_REGION is set (see ADR-0024) - reads whatever's
+    actually in that account, never mutates without allow_live=True (never passed
+    here). The zero-setup fake, seeded with a demo-shaped mix of resources, otherwise.
+    """
+    region = os.environ.get("CLOUD_WASTE_AWS_REGION")
+    if region:
+        print(f"Using a real AWS account in {region} (region set via env).\n")
+        return AwsCloudClient(CloudWasteAwsSettings(region=region))
+
+    client = FakeCloudClient(
+        [
+            ElasticIp(
+                id="eipalloc-forgotten",
+                public_ip="203.0.113.42",
+                association_id=None,
+                instance_id=None,  # unassociated - nothing is using it
+            ),
+            ElasticIp(
+                id="eipalloc-in-use",
+                public_ip="203.0.113.7",
+                association_id="eipassoc-live",
+                instance_id="i-0123456789abcdef0",  # attached - left alone
+            ),
+        ]
+    )
+    client.seed_instance(
+        Instance(
+            id="i-idle-for-weeks",
+            state="running",
+            launch_time=now - timedelta(days=90),
+            tags={"env": "unknown"},
+            avg_cpu_percent=1.2,  # below both thresholds - idle
+            avg_network_bytes=10_000,
+        )
+    )
+    client.seed_instance(
+        Instance(
+            id="i-busy-web-server",
+            state="running",
+            launch_time=now - timedelta(days=200),
+            tags={"env": "prod"},
+            avg_cpu_percent=42.0,  # well above threshold - left alone
+            avg_network_bytes=2_000_000_000,
+        )
+    )
+    return client
 
 
 def _print_critique(snapshot: dict[str, object]) -> None:
@@ -162,42 +225,7 @@ async def _approve_and_execute(
 
 async def main() -> None:
     now = datetime.now(UTC)
-    client = FakeCloudClient(
-        [
-            ElasticIp(
-                id="eipalloc-forgotten",
-                public_ip="203.0.113.42",
-                association_id=None,
-                instance_id=None,  # unassociated - nothing is using it
-            ),
-            ElasticIp(
-                id="eipalloc-in-use",
-                public_ip="203.0.113.7",
-                association_id="eipassoc-live",
-                instance_id="i-0123456789abcdef0",  # attached - left alone
-            ),
-        ]
-    )
-    client.seed_instance(
-        Instance(
-            id="i-idle-for-weeks",
-            state="running",
-            launch_time=now - timedelta(days=90),
-            tags={"env": "unknown"},
-            avg_cpu_percent=1.2,  # below both thresholds - idle
-            avg_network_bytes=10_000,
-        )
-    )
-    client.seed_instance(
-        Instance(
-            id="i-busy-web-server",
-            state="running",
-            launch_time=now - timedelta(days=200),
-            tags={"env": "prod"},
-            avg_cpu_percent=42.0,  # well above threshold - left alone
-            avg_network_bytes=2_000_000_000,
-        )
-    )
+    client = _build_client(now)
     address_adapter = CloudWasteAdapter(client)
     instance_adapter = IdleInstanceAdapter(client)
     critic = _build_critic()

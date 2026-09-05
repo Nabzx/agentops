@@ -5,6 +5,14 @@ ADR-0006, not one Adapter branching on action shape.
 rests on "does the allocation id still exist". ``IdleInstanceAdapter`` stops an idle
 instance (ADR-0022) - exactly-once needs no dedup ledger at all, since AWS's own
 ``StopInstances`` is safe to call on an already-stopped instance regardless of key.
+
+Both Adapters classify two more client-layer exceptions that only ``AwsCloudClient``
+(ADR-0024) ever actually raises: ``LiveActionsDisabledError`` (a real ``DryRun``
+confirmed the call would succeed, but this repo's own policy never lets it - permanent,
+since the client's configuration never changes mid-flight) and ``TransientCloudError``
+(an unclassified AWS-side failure - throttling, a network blip - worth retrying).
+``FakeCloudClient`` never raises either, so this is dormant in every test/demo/CI path
+today - see client.py's own docstring for why that's deliberate (ADR-0024 item 3).
 """
 
 from __future__ import annotations
@@ -12,7 +20,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from ephor.effects import Effect, PermanentEffectError
+from ephor.effects import Effect, PermanentEffectError, RetryableEffectError
 
 from cloud_waste.client import (
     IDLE_CPU_PERCENT_THRESHOLD,
@@ -20,6 +28,8 @@ from cloud_waste.client import (
     AddressNotFoundError,
     CloudClient,
     InstanceNotFoundError,
+    LiveActionsDisabledError,
+    TransientCloudError,
 )
 
 
@@ -77,6 +87,10 @@ class CloudWasteAdapter:
             )
         except AddressNotFoundError as exc:
             raise PermanentEffectError(str(exc)) from exc
+        except LiveActionsDisabledError as exc:
+            raise PermanentEffectError(str(exc)) from exc
+        except TransientCloudError as exc:
+            raise RetryableEffectError(str(exc)) from exc
         return Effect(
             effect_id=result.id,
             occurred_at=datetime.now(UTC),
@@ -143,6 +157,10 @@ class IdleInstanceAdapter:
             )
         except InstanceNotFoundError as exc:
             raise PermanentEffectError(str(exc)) from exc
+        except LiveActionsDisabledError as exc:
+            raise PermanentEffectError(str(exc)) from exc
+        except TransientCloudError as exc:
+            raise RetryableEffectError(str(exc)) from exc
         return Effect(
             effect_id=result.id,
             occurred_at=datetime.now(UTC),
