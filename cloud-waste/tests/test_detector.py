@@ -3,9 +3,9 @@ from datetime import UTC, datetime, timedelta
 
 from ephor.actions import InMemoryProposalStore
 from ephor.approvals import ApprovalStatus, InMemoryApprovalStore, verify_snapshot
+from ephor.critic import FakeCritic
 
 from cloud_waste.client import ElasticIp, FakeCloudClient, Instance
-from cloud_waste.critic import FakeCritic
 from cloud_waste.detector import (
     IdleInstanceCandidate,
     WasteCandidate,

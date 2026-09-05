@@ -88,9 +88,12 @@ unassociated Elastic IP addresses and stops idle EC2 instances, earning exactly-
 own error and state semantics instead of either
 ([ADR-0020](docs/adr/0020-v1-cloud-waste-action-set.md),
 [0022](docs/adr/0022-idle-instance-detection.md)) - four genuinely different Adapter shapes, one
-core. `cloud-waste/` can also ask a real LLM for a second opinion on a proposal before a human
-sees it, always advisory, never a decision
-([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md)) - the one deliberate exception to "nothing
+core. Every detector can also ask an LLM for a second opinion on a proposal before a human sees
+it, always advisory, never a decision
+([ADR-0021](docs/adr/0021-llm-in-the-safety-loop.md),
+[0023](docs/adr/0023-critic-on-every-detector.md)) - `cloud-waste/` is the one place that opinion
+can come from a real, paid model; the other two use the same seam with a free, canned one. The
+one deliberate exception to "nothing
 here touches a paid API": off by default, a free canned response unless you set your own key.
 
 ## Contributing

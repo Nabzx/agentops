@@ -25,13 +25,13 @@ from datetime import datetime
 
 from ephor.actions import Proposal, ProposalStore
 from ephor.approvals import ApprovalRequest, ApprovalStore
+from ephor.critic import Critic
 
 from cloud_waste.client import (
     IDLE_CPU_PERCENT_THRESHOLD,
     IDLE_NETWORK_BYTES_THRESHOLD,
     CloudClient,
 )
-from cloud_waste.critic import Critic
 
 
 @dataclass(frozen=True)

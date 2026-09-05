@@ -23,12 +23,13 @@ from datetime import UTC, datetime, timedelta
 from ephor.actions import InMemoryProposalStore
 from ephor.approvals import ApprovalStatus, InMemoryApprovalStore
 from ephor.audit import InMemoryAuditStore
+from ephor.critic import Critic, FakeCritic
 from ephor.effects import Adapter, Effect
 from ephor.outbox import InMemoryOutboxStore
 
 from cloud_waste.adapter import CloudWasteAdapter, IdleInstanceAdapter
 from cloud_waste.client import ElasticIp, FakeCloudClient, Instance
-from cloud_waste.critic import ClaudeCritic, ClaudeCriticSettings, Critic, FakeCritic
+from cloud_waste.critic import ClaudeCritic, ClaudeCriticSettings
 from cloud_waste.detector import (
     scan_for_idle_instances,
     scan_for_unassociated_addresses,

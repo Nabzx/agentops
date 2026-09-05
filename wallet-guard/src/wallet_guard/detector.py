@@ -8,6 +8,12 @@ Stripe charge ids. The approval id lives in the Snapshot instead, per ADR-0008.
 ``requested_amount_pence`` is left unset - there's no currency amount involved in
 revoking an approval, and that field is optional precisely so a non-monetary action
 like this one doesn't have to invent one.
+
+An optional ``Critic`` (ADR-0021, extended to every detector by ADR-0023) adds a
+second opinion to the Snapshot before it's hashed - ``FakeCritic`` by default, so
+nothing here changes unless a caller opts in. The unlimited-allowance check is still
+the entire condition for whether to propose at all; the Critic never gets a vote on
+that, only on what a human sees alongside it.
 """
 
 from __future__ import annotations
@@ -18,6 +24,7 @@ from datetime import datetime
 
 from ephor.actions import Proposal, ProposalStore
 from ephor.approvals import ApprovalRequest, ApprovalStore
+from ephor.critic import Critic
 
 from wallet_guard.client import INFINITE_ALLOWANCE, ChainClient
 
@@ -37,6 +44,7 @@ async def scan_for_risky_approvals(
     requester_id: uuid.UUID,
     now: datetime,
     expires_at: datetime,
+    critic: Critic | None = None,
 ) -> list[RevocationCandidate]:
     """Scan once, propose revoking every approval that grants an unlimited
     allowance. A merely large-but-finite allowance is left alone in v1 (ADR-0016) -
@@ -75,6 +83,16 @@ async def scan_for_risky_approvals(
                 "just a large one"
             ),
         }
+        if critic is not None:
+            critique = await critic.critique(
+                {
+                    "approval_id": approval.id,
+                    "token_symbol": approval.token_symbol,
+                    "spender_address": approval.spender_address,
+                    "allowance": str(approval.allowance),
+                }
+            )
+            snapshot["llm_critique"] = critique.as_snapshot_field()
         approval_request = await approvals.create(
             proposal_id=proposal.id,
             subject_type="token_approval",

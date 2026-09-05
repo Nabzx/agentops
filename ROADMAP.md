@@ -161,6 +161,15 @@ dedup ledger is needed at all. `IdleInstanceAdapter` sits alongside `CloudWasteA
 harness now drives both action types through one adapter-agnostic driver and holds exactly-once at
 5,000 trials, zero violations, for either.
 
+**The Critic seam is broadened to every detector** ([ADR-0023](docs/adr/0023-critic-on-every-detector.md),
+closing #75): `Critique`/the `Critic` Protocol/`FakeCritic` moved out of `cloud-waste` and into
+`ephor.critic` - a shared core primitive, zero new dependencies. `stripe-recovery` and
+`wallet-guard` both now take an optional `critic` param on their scan, attaching a critique to the
+Snapshot exactly like `cloud-waste` already did, and both demos wire in `FakeCritic` to prove it.
+`ClaudeCritic` (the one real, paid implementation) deliberately stays in `cloud_waste/critic.py`
+rather than moving into core - `ephor` itself still has zero paid-vendor dependencies, and no
+other flagship has a real Critic option wired in yet.
+
 ---
 
 ## Open decisions (Wayfinder map)

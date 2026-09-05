@@ -5,6 +5,10 @@ Run with: ``uv run python -m wallet_guard.demo``
 No RPC endpoint, no real wallet, nothing real. Same shape as
 ``stripe_recovery.demo`` - the point of this package is proving that shape holds for
 a second, genuinely different kind of Adapter, not inventing a new one.
+
+Wires in a ``FakeCritic`` (ADR-0021, extended here by ADR-0023) to prove the same
+optional-second-opinion shape ``cloud-waste`` already demonstrates. No real,
+paid Critic is wired into this demo - that stays scoped to ``cloud-waste`` alone.
 """
 
 from __future__ import annotations
@@ -16,6 +20,7 @@ from datetime import UTC, datetime, timedelta
 from ephor.actions import InMemoryProposalStore
 from ephor.approvals import ApprovalStatus, InMemoryApprovalStore
 from ephor.audit import InMemoryAuditStore
+from ephor.critic import FakeCritic
 from ephor.outbox import InMemoryOutboxStore
 
 from wallet_guard.adapter import WalletGuardAdapter
@@ -25,6 +30,15 @@ from wallet_guard.detector import scan_for_risky_approvals
 REQUESTER_ID = uuid.uuid4()
 SUPERVISOR_ID = uuid.uuid4()
 OWNER_ADDRESS = "0xOwnerWallet"
+
+
+def _print_critique(snapshot: dict[str, object]) -> None:
+    critique = snapshot.get("llm_critique")
+    if isinstance(critique, dict):
+        print(
+            f"     critic ({critique['model']}) says: {critique['recommendation']}"
+            f" - {critique['reasoning']}"
+        )
 
 
 async def main() -> None:
@@ -64,6 +78,7 @@ async def main() -> None:
         requester_id=REQUESTER_ID,
         now=now,
         expires_at=now + timedelta(hours=48),
+        critic=FakeCritic(),
     )
     print(f"1. scanned {OWNER_ADDRESS} -> {len(candidates)} risky approval(s) proposed")
     for c in candidates:
@@ -71,6 +86,7 @@ async def main() -> None:
             f"   - {c.approval.snapshot_json['spender_address']} can move unlimited "
             f"{c.approval.snapshot_json['token_symbol']}"
         )
+        _print_critique(c.approval.snapshot_json)
 
     if not candidates:
         print("\nNo risky approvals found - nothing to approve or execute.")
